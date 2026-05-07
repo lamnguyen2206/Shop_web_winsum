@@ -5,48 +5,97 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    background-color: #f4f4f4;
-    color: #333;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    background: #ffffff;
+    color: #111111;
 }
 
-header {
-    background: #35424a;
-    color: #ffffff;
-    padding-top: 30px;
-    min-height: 70px;
-    border-bottom: #e8491d 3px solid;
-}
-
-header a {
-    color: #ffffff;
+a {
+    color: inherit;
     text-decoration: none;
-    text-transform: uppercase;
-    font-size: 16px;
 }
 
-header ul {
-    padding: 0;
-    list-style: none;
+.container {
+    width: min(1220px, 92%);
+    margin: 0 auto;
+}
+
+.site-header {
+    border-bottom: 1px solid #eeeeee;
+    background: #ffffff;
+}
+
+.topbar {
     text-align: center;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #f4f4f5;
+    padding: 10px 12px;
+    background: #111827;
 }
 
-header li {
-    display: inline;
-    padding: 0 20px;
+.navbar {
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+}
+
+.main-nav ul {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.main-nav a {
+    color: #4b5563;
+    font-size: 15px;
+}
+
+.main-nav a.active,
+.main-nav a:hover {
+    color: #111827;
+}
+
+.nav-icons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 17px;
 }
 
 main {
-    padding: 20px;
-    text-align: center;
-    min-height: calc(100vh - 150px);
+    min-height: calc(100vh - 168px);
+    padding: 26px 0 44px;
 }
 
-footer {
-    background: #35424a;
-    color: #ffffff;
+.site-footer {
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
     text-align: center;
-    padding: 20px;
-    margin-top: 20px;
+    padding: 16px 12px;
+    background: #ffffff;
+}
+
+@media (max-width: 992px) {
+    .main-nav ul {
+        gap: 14px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 12px 0;
+    }
 }
