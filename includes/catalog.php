@@ -30,7 +30,71 @@ $brands = productGetFilterBrands($conn);
 $materials = productGetFilterMaterialOptions($conn);
 $colors = productGetFilterColorOptions($conn);
 $priceRange = productGetAvailablePriceRange($conn);
-$products = productSearchProducts($conn, $filters, 24);
+$perPage = 9;
+$currentPage = max(1, (int) ($_GET['page'] ?? 1));
+$totalProducts = productCountSearchProducts($conn, $filters);
+$totalPages = max(1, (int) ceil($totalProducts / $perPage));
+if ($currentPage > $totalPages) {
+    $currentPage = $totalPages;
+}
+$offset = ($currentPage - 1) * $perPage;
+$products = productSearchProducts($conn, $filters, $perPage, $offset);
+
+$filterLabels = [
+    'q' => 'Từ khóa',
+    'category' => 'Danh mục',
+    'brand' => 'Thương hiệu',
+    'material' => 'Chất liệu',
+    'color' => 'Màu sắc',
+    'stock' => 'Tình trạng',
+    'min_price' => 'Giá từ',
+    'max_price' => 'Giá đến',
+];
+
+function catalogBuildUrl(array $filters, int $page = 1): string
+{
+    $params = ['view' => 'catalog', 'page' => $page];
+    foreach ($filters as $key => $value) {
+        if ($key === 'sort' && $value === 'featured') {
+            continue;
+        }
+        if ($value === '' || $value === 0 || $value === '0') {
+            continue;
+        }
+        $params[$key] = $value;
+    }
+    return 'index.php?' . http_build_query($params);
+}
+
+function catalogFilterDisplayValue(string $key, $value, array $categories, array $brands): string
+{
+    if ($key === 'category') {
+        foreach ($categories as $item) {
+            if ($item['slug'] === $value) {
+                return $item['name'];
+            }
+        }
+    }
+    if ($key === 'brand') {
+        foreach ($brands as $item) {
+            if ($item['slug'] === $value) {
+                return $item['name'];
+            }
+        }
+    }
+    if ($key === 'stock') {
+        $map = [
+            'in_stock' => 'Còn hàng',
+            'preorder' => 'Đặt trước',
+            'out_of_stock' => 'Hết hàng',
+        ];
+        return $map[$value] ?? (string) $value;
+    }
+    if ($key === 'min_price' || $key === 'max_price') {
+        return number_format((float) $value, 0, ',', '.') . 'đ';
+    }
+    return (string) $value;
+}
 ?>
 
 <section class="container catalog-page">
@@ -42,6 +106,33 @@ $products = productSearchProducts($conn, $filters, 24);
 
     <?php if ($catalogNotice !== ''): ?>
         <p class="catalog-notice"><?php echo htmlspecialchars($catalogNotice); ?></p>
+    <?php endif; ?>
+
+    <?php
+    $activeFilters = [];
+    foreach ($filterLabels as $key => $label) {
+        $value = $filters[$key] ?? '';
+        if ($value !== '' && $value !== 0 && $value !== '0') {
+            $activeFilters[$key] = ['label' => $label, 'value' => $value];
+        }
+    }
+    ?>
+    <?php if (!empty($activeFilters)): ?>
+        <div class="filter-badges">
+            <?php foreach ($activeFilters as $key => $data): ?>
+                <?php
+                $nextFilters = $filters;
+                $nextFilters[$key] = '';
+                $removeUrl = catalogBuildUrl($nextFilters, 1);
+                $displayValue = catalogFilterDisplayValue($key, $data['value'], $categories, $brands);
+                ?>
+                <a class="filter-badge" href="<?php echo htmlspecialchars($removeUrl); ?>">
+                    <?php echo htmlspecialchars($data['label'] . ': ' . $displayValue); ?>
+                    <span>×</span>
+                </a>
+            <?php endforeach; ?>
+            <a class="clear-all-filters" href="index.php?view=catalog">Xóa tất cả</a>
+        </div>
     <?php endif; ?>
 
     <div class="catalog-layout">
@@ -157,6 +248,22 @@ $products = productSearchProducts($conn, $filters, 24);
                         </article>
                     <?php endforeach; ?>
                 </div>
+
+                <?php if ($totalPages > 1): ?>
+                    <nav class="catalog-pagination" aria-label="Phân trang sản phẩm">
+                        <?php
+                        $prevPage = max(1, $currentPage - 1);
+                        $nextPage = min($totalPages, $currentPage + 1);
+                        ?>
+                        <a class="<?php echo $currentPage <= 1 ? 'disabled' : ''; ?>" href="<?php echo htmlspecialchars(catalogBuildUrl($filters, $prevPage)); ?>">Trước</a>
+                        <?php for ($page = 1; $page <= $totalPages; $page++): ?>
+                            <a class="<?php echo $page === $currentPage ? 'active' : ''; ?>" href="<?php echo htmlspecialchars(catalogBuildUrl($filters, $page)); ?>">
+                                <?php echo $page; ?>
+                            </a>
+                        <?php endfor; ?>
+                        <a class="<?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>" href="<?php echo htmlspecialchars(catalogBuildUrl($filters, $nextPage)); ?>">Sau</a>
+                    </nav>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

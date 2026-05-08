@@ -21,12 +21,17 @@ function blogFormatVietnameseDateLabel(string $ymdDate): string
 
 function blogMapPostRow(array $row): array
 {
+    $rawContent = (string) $row['content'];
+    $contentBlocks = preg_split("/\r\n|\n|\r/", $rawContent);
+    $hasHtml = preg_match('/<\s*(p|h1|h2|h3|h4|img|ul|ol|li|blockquote|strong|em|a|br)\b/i', $rawContent) === 1;
+
     return [
         'id' => (int) $row['id'],
         'slug' => $row['slug'],
         'title' => $row['title'],
         'excerpt' => $row['excerpt'],
-        'content' => preg_split("/\r\n|\n|\r/", (string) $row['content']),
+        'content' => $contentBlocks,
+        'content_html' => $hasHtml ? $rawContent : '',
         'category' => $row['category'],
         'image' => $row['image'],
         'read_time' => $row['read_time'],
@@ -34,6 +39,71 @@ function blogMapPostRow(array $row): array
         'date_label' => blogFormatVietnameseDateLabel($row['published_at']),
         'is_featured' => (int) $row['is_featured'] === 1
     ];
+}
+
+function blogSanitizeHtml(string $html): string
+{
+    $allowed = '<p><br><strong><em><u><h2><h3><h4><ul><ol><li><blockquote><img><a>';
+    $clean = strip_tags($html, $allowed);
+
+    $clean = preg_replace_callback('/<a\s+([^>]+)>/i', static function (array $matches): string {
+        $attrs = $matches[1];
+        $href = '';
+        if (preg_match('/href\s*=\s*"([^"]*)"/i', $attrs, $hrefMatch)) {
+            $href = $hrefMatch[1];
+        } elseif (preg_match("/href\s*=\s*'([^']*)'/i", $attrs, $hrefMatch)) {
+            $href = $hrefMatch[1];
+        }
+        $href = htmlspecialchars($href, ENT_QUOTES, 'UTF-8');
+        return '<a href="' . $href . '" target="_blank" rel="noopener noreferrer">';
+    }, $clean) ?? $clean;
+
+    $clean = preg_replace_callback('/<img\s+([^>]+)>/i', static function (array $matches): string {
+        $attrs = $matches[1];
+        $src = '';
+        $alt = '';
+        if (preg_match('/src\s*=\s*"([^"]*)"/i', $attrs, $srcMatch)) {
+            $src = $srcMatch[1];
+        } elseif (preg_match("/src\s*=\s*'([^']*)'/i", $attrs, $srcMatch)) {
+            $src = $srcMatch[1];
+        }
+        if (preg_match('/alt\s*=\s*"([^"]*)"/i', $attrs, $altMatch)) {
+            $alt = $altMatch[1];
+        } elseif (preg_match("/alt\s*=\s*'([^']*)'/i", $attrs, $altMatch)) {
+            $alt = $altMatch[1];
+        }
+        if ($src === '') {
+            return '';
+        }
+        return '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '">';
+    }, $clean) ?? $clean;
+
+    return $clean;
+}
+
+function blogCreatePost(mysqli $conn, array $payload): bool
+{
+    $stmt = $conn->prepare("INSERT INTO blog_posts
+        (slug, title, excerpt, content, category, image, read_time, published_at, is_featured, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')");
+    if (!$stmt) {
+        return false;
+    }
+
+    $slug = $payload['slug'];
+    $title = $payload['title'];
+    $excerpt = $payload['excerpt'];
+    $content = $payload['content'];
+    $category = $payload['category'];
+    $image = $payload['image'];
+    $readTime = $payload['read_time'];
+    $publishedAt = $payload['published_at'];
+    $isFeatured = !empty($payload['is_featured']) ? 1 : 0;
+
+    $stmt->bind_param('ssssssssi', $slug, $title, $excerpt, $content, $category, $image, $readTime, $publishedAt, $isFeatured);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
 }
 
 function blogGetAllPosts(mysqli $conn): array

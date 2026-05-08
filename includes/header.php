@@ -20,9 +20,16 @@ $cartCount = cartCountItems();
         </nav>
 
         <div class="nav-icons">
-            <a title="Tìm kiếm sản phẩm" href="index.php?view=catalog">🔍</a>
-            <a title="Tài khoản" href="index.php?view=account">👤</a>
-            <a title="Giỏ hàng" href="index.php?view=cart">🛍️<?php echo $cartCount > 0 ? '<em class="cart-badge">' . $cartCount . '</em>' : ''; ?></a>
+            <a class="icon-link" title="Tìm kiếm sản phẩm" href="index.php?view=catalog" aria-label="Tìm kiếm">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.65" y1="16.65" x2="21" y2="21"></line></svg>
+            </a>
+            <a class="icon-link" title="Tài khoản" href="index.php?view=account" aria-label="Tài khoản">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </a>
+            <a class="icon-link" title="Giỏ hàng" href="index.php?view=cart" aria-label="Giỏ hàng">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M3 4h2l2.2 10.5a1 1 0 0 0 1 .8H19a1 1 0 0 0 1-.8L22 7H7"></path></svg>
+                <?php echo $cartCount > 0 ? '<em class="cart-badge">' . $cartCount . '</em>' : ''; ?>
+            </a>
         </div>
     </div>
 </header>

@@ -115,7 +115,7 @@ function productMapListRow(array $row): array
     ];
 }
 
-function productSearchProducts(mysqli $conn, array $filters, int $limit = 12): array
+function productBuildSearchConditions(array $filters): array
 {
     $where = [
         "p.is_active = 1",
@@ -155,17 +155,6 @@ function productSearchProducts(mysqli $conn, array $filters, int $limit = 12): a
         $params[] = $filters['max_price'];
     }
 
-    $sortSql = "p.is_featured DESC, p.published_at DESC, p.id DESC";
-    if ($filters['sort'] === 'price_asc') {
-        $sortSql = "p.base_price ASC, p.id DESC";
-    } elseif ($filters['sort'] === 'price_desc') {
-        $sortSql = "p.base_price DESC, p.id DESC";
-    } elseif ($filters['sort'] === 'name_asc') {
-        $sortSql = "p.name ASC, p.id DESC";
-    } elseif ($filters['sort'] === 'latest') {
-        $sortSql = "p.published_at DESC, p.id DESC";
-    }
-
     if ($filters['brand'] !== '') {
         $where[] = "b.slug = ?";
         $types .= 's';
@@ -184,6 +173,56 @@ function productSearchProducts(mysqli $conn, array $filters, int $limit = 12): a
         $params[] = $filters['color'];
     }
 
+    return [
+        'where_sql' => implode(' AND ', $where),
+        'types' => $types,
+        'params' => $params,
+    ];
+}
+
+function productResolveSortSql(string $sort): string
+{
+    if ($sort === 'price_asc') {
+        return "p.base_price ASC, p.id DESC";
+    }
+    if ($sort === 'price_desc') {
+        return "p.base_price DESC, p.id DESC";
+    }
+    if ($sort === 'name_asc') {
+        return "p.name ASC, p.id DESC";
+    }
+    if ($sort === 'latest') {
+        return "p.published_at DESC, p.id DESC";
+    }
+    return "p.is_featured DESC, p.published_at DESC, p.id DESC";
+}
+
+function productCountSearchProducts(mysqli $conn, array $filters): int
+{
+    $conditions = productBuildSearchConditions($filters);
+    $sql = "SELECT COUNT(*) AS total
+            FROM products p
+            JOIN categories c ON c.id = p.category_id
+            LEFT JOIN brands b ON b.id = p.brand_id
+            WHERE {$conditions['where_sql']}";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return 0;
+    }
+    if ($conditions['types'] !== '') {
+        $stmt->bind_param($conditions['types'], ...$conditions['params']);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    return (int) ($row['total'] ?? 0);
+}
+
+function productSearchProducts(mysqli $conn, array $filters, int $limit = 12, int $offset = 0): array
+{
+    $conditions = productBuildSearchConditions($filters);
+    $sortSql = productResolveSortSql($filters['sort']);
     $sql = "SELECT p.id, p.name, p.slug, p.sku, p.short_description, p.base_price, p.stock_status,
                    c.name AS category_name, c.slug AS category_slug,
                    b.name AS brand_name, b.slug AS brand_slug,
@@ -192,17 +231,19 @@ function productSearchProducts(mysqli $conn, array $filters, int $limit = 12): a
             JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
             LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
-            WHERE " . implode(' AND ', $where) . "
+            WHERE {$conditions['where_sql']}
             ORDER BY {$sortSql}
-            LIMIT ?";
+            LIMIT ? OFFSET ?";
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         return [];
     }
 
-    $types .= 'i';
+    $types = $conditions['types'] . 'ii';
+    $params = $conditions['params'];
     $params[] = $limit;
+    $params[] = max(0, $offset);
     $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $result = $stmt->get_result();

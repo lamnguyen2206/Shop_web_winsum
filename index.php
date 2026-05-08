@@ -19,6 +19,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
         $pageTitle = 'Tin tức | Winsum Home';
     } elseif ($view === 'post') {
         $pageTitle = 'Chi tiết bài viết | Winsum Home';
+    } elseif ($view === 'blog-editor') {
+        $pageTitle = 'Soạn bài blog | Winsum Home';
     } elseif ($view === 'cart') {
         $pageTitle = 'Giỏ hàng | Winsum Home';
     } elseif ($view === 'checkout') {
@@ -54,6 +56,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
             include 'includes/blog.php';
         } elseif ($view === 'post') {
             include 'includes/blog-detail.php';
+        } elseif ($view === 'blog-editor') {
+            include 'includes/blog-editor.php';
         } elseif ($view === 'cart') {
             include 'includes/cart.php';
         } elseif ($view === 'checkout') {
