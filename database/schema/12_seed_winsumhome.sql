@@ -96,3 +96,125 @@ ON DUPLICATE KEY UPDATE
     published_at = VALUES(published_at),
     is_featured = VALUES(is_featured),
     status = VALUES(status);
+
+-- ------------------------------------------------------------
+-- HOME PAGE FRAMEWORK DATA
+-- Khung dữ liệu mẫu cho trang chủ; có thể chỉnh sửa/đổ thêm sau.
+-- ------------------------------------------------------------
+
+INSERT INTO banners (title, subtitle, image_url, link_url, position, sort_order, is_active, starts_at, ends_at)
+SELECT
+    'Nội thất và chiếu sáng cao cấp cho không gian sống đẳng cấp',
+    'Khám phá bộ sưu tập đèn trang trí, nội thất nhập khẩu và giải pháp thiết kế đồng bộ theo chuẩn châu Âu.',
+    'assets/images/blog_3.png',
+    '#',
+    'home_hero',
+    1,
+    1,
+    NULL,
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM banners
+    WHERE position = 'home_hero'
+      AND is_active = 1
+);
+
+INSERT INTO products (
+    brand_id, category_id, name, slug, short_description, description, sku, product_type,
+    base_price, compare_at_price, stock_status, material, color, warranty_months,
+    is_featured, is_active, published_at
+)
+SELECT
+    b.id,
+    c.id,
+    x.name,
+    x.slug,
+    x.short_description,
+    x.description,
+    x.sku,
+    'simple',
+    x.base_price,
+    x.compare_at_price,
+    'in_stock',
+    x.material,
+    x.color,
+    x.warranty_months,
+    x.is_featured,
+    1,
+    NOW()
+FROM (
+    SELECT
+        'den-treo-tran-axis' AS slug,
+        'Đèn treo trần AXIS' AS name,
+        'Giải pháp chiếu sáng tinh gọn cho phòng khách hiện đại.' AS short_description,
+        'Mẫu đèn treo trần AXIS mang phong cách hiện đại, ánh sáng chống chói và phù hợp nhiều không gian sống.' AS description,
+        'WS-AXIS-01' AS sku,
+        12800000.00 AS base_price,
+        14500000.00 AS compare_at_price,
+        'Hợp kim + Acrylic' AS material,
+        'Đen nhám' AS color,
+        24 AS warranty_months,
+        1 AS is_featured,
+        'den-tha-tran' AS category_slug
+    UNION ALL
+    SELECT
+        'den-treo-bauhaus',
+        'Đèn treo BAUHAUS',
+        'Điểm nhấn hoài cổ cho không gian nội thất cao cấp.',
+        'Thiết kế lấy cảm hứng từ triết lý Bauhaus, cân bằng giữa thẩm mỹ và công năng sử dụng.',
+        'WS-BAU-02',
+        9650000.00,
+        10900000.00,
+        'Kim loại sơn tĩnh điện' ,
+        'Vàng đồng',
+        24,
+        1,
+        'den-tha-tran'
+    UNION ALL
+    SELECT
+        'ph5-pendant-lamp',
+        'PH5 Pendant Lamp',
+        'Thiết kế Bắc Âu biểu tượng với ánh sáng phân bổ đồng đều.',
+        'Mẫu đèn PH5 mang lại ánh sáng dịu mắt, phù hợp khu vực bàn ăn và phòng khách sang trọng.',
+        'WS-PH5-03',
+        15200000.00,
+        16900000.00,
+        'Nhôm phủ sơn',
+        'Cam đất',
+        36,
+        1,
+        'den-tha-tran'
+) x
+JOIN brands b ON b.slug = 'winsum-home'
+JOIN categories c ON c.slug = x.category_slug
+ON DUPLICATE KEY UPDATE
+    category_id = VALUES(category_id),
+    name = VALUES(name),
+    short_description = VALUES(short_description),
+    description = VALUES(description),
+    base_price = VALUES(base_price),
+    compare_at_price = VALUES(compare_at_price),
+    stock_status = VALUES(stock_status),
+    material = VALUES(material),
+    color = VALUES(color),
+    warranty_months = VALUES(warranty_months),
+    is_featured = VALUES(is_featured),
+    is_active = VALUES(is_active),
+    published_at = VALUES(published_at);
+
+DELETE pi
+FROM product_images pi
+JOIN products p ON p.id = pi.product_id
+WHERE p.slug IN ('den-treo-tran-axis', 'den-treo-bauhaus', 'ph5-pendant-lamp');
+
+INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary)
+SELECT p.id, x.image_url, x.alt_text, x.sort_order, x.is_primary
+FROM (
+    SELECT 'den-treo-tran-axis' AS product_slug, 'assets/images/blog_1.png' AS image_url, 'Đèn treo trần AXIS' AS alt_text, 1 AS sort_order, 1 AS is_primary
+    UNION ALL
+    SELECT 'den-treo-bauhaus', 'assets/images/blog_2.png', 'Đèn treo BAUHAUS', 1, 1
+    UNION ALL
+    SELECT 'ph5-pendant-lamp', 'assets/images/blog_3.png', 'PH5 Pendant Lamp', 1, 1
+) x
+JOIN products p ON p.slug = x.product_slug;

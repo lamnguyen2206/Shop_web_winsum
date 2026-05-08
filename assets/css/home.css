@@ -1,0 +1,267 @@
+.home-page {
+    background: #f8f9fb;
+}
+
+.hero {
+    background: linear-gradient(120deg, #0f172a 0%, #1f2937 58%, #111827 100%);
+    color: #f8fafc;
+    padding: 56px 0 48px;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 36px;
+    align-items: center;
+}
+
+.hero-copy .eyebrow {
+    font-size: 12px;
+    letter-spacing: 1.4px;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+}
+
+.hero-copy h1 {
+    font-size: 44px;
+    line-height: 1.16;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.hero-copy .subtitle {
+    color: #d1d5db;
+    max-width: 600px;
+}
+
+.hero-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #f9fafb;
+    color: #0f172a;
+}
+
+.btn-primary:hover {
+    background: #e5e7eb;
+}
+
+.btn-ghost {
+    border: 1px solid #9ca3af;
+    color: #f8fafc;
+}
+
+.btn-ghost:hover {
+    border-color: #ffffff;
+}
+
+.hero-highlight {
+    position: relative;
+}
+
+.hero-highlight img {
+    width: 100%;
+    height: 420px;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+.highlight-badge {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    background: rgba(17, 24, 39, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+}
+
+.home-section {
+    padding: 42px 0 14px;
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.section-head h2 {
+    font-size: 32px;
+    color: #111827;
+}
+
+.section-head a {
+    color: #2563eb;
+    font-size: 15px;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.category-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.category-card h3 {
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.category-card p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.product-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.product-card img {
+    width: 100%;
+    height: 230px;
+    object-fit: cover;
+}
+
+.product-info {
+    padding: 14px;
+}
+
+.product-category {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.product-info h3 {
+    color: #111827;
+    font-size: 20px;
+    margin: 4px 0 6px;
+}
+
+.product-price {
+    color: #b45309;
+    font-weight: 700;
+}
+
+.home-news {
+    padding-bottom: 42px;
+}
+
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.news-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    overflow: hidden;
+}
+
+.news-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.news-card div {
+    padding: 16px;
+}
+
+.news-card h3 {
+    color: #111827;
+    font-size: 21px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+}
+
+.news-card p {
+    color: #6b7280;
+}
+
+@media (max-width: 992px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-copy h1 {
+        font-size: 34px;
+    }
+
+    .category-grid,
+    .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .news-card {
+        grid-template-columns: 1fr;
+    }
+
+    .news-card img {
+        height: 220px;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero {
+        padding-top: 36px;
+    }
+
+    .hero-copy h1 {
+        font-size: 28px;
+    }
+
+    .hero-highlight img {
+        height: 300px;
+    }
+
+    .hero-actions {
+        flex-wrap: wrap;
+    }
+
+    .section-head h2 {
+        font-size: 25px;
+    }
+
+    .category-grid,
+    .product-grid,
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+}
