@@ -12,6 +12,7 @@ if (empty($featuredPosts)) {
     <div class="blog-hero">
         <p class="breadcrumb"><a href="index.php">Trang chủ</a> / <span>Tin tức</span></p>
         <h1 class="blog-title">Tin tức</h1>
+        <a href="index.php?view=blog-editor" class="btn-secondary blog-editor-link">Soạn bài mới</a>
     </div>
 
     <div class="blog-layout">
