@@ -1,0 +1,63 @@
+.account-page .account-notice {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.account-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.account-form {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    display: grid;
+    gap: 8px;
+    background: #ffffff;
+}
+
+.account-form h2 {
+    margin-bottom: 4px;
+}
+
+.account-form label {
+    font-size: 14px;
+    color: #374151;
+}
+
+.account-form input {
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.account-card {
+    padding: 16px;
+}
+
+.account-card p {
+    margin-top: 6px;
+}
+
+.account-actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.account-actions form {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .account-layout {
+        grid-template-columns: 1fr;
+    }
+}
