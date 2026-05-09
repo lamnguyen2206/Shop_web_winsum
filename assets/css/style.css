@@ -5,8 +5,8 @@
 }
 
 body {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.5;
+    font-family: Arial, sans-serif;
+    line-height: 1.45;
     background: #ffffff;
     color: #111111;
 }
@@ -17,26 +17,26 @@ a {
 }
 
 .container {
-    width: min(1220px, 92%);
+    width: min(1240px, 92%);
     margin: 0 auto;
 }
 
 .site-header {
-    border-bottom: 1px solid #eeeeee;
-    background: #ffffff;
+    border-bottom: 1px solid #232833;
+    background: #141922;
 }
 
 .topbar {
     text-align: center;
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 1px;
-    color: #f4f4f5;
+    color: #f8fafc;
     padding: 10px 12px;
-    background: #111827;
+    background: #05070b;
 }
 
 .navbar {
-    min-height: 74px;
+    min-height: 72px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -45,8 +45,12 @@ a {
 
 .brand {
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     text-transform: lowercase;
+    color: #f8fafc;
+    font-size: 28px;
+    line-height: 1;
+    font-family: "Times New Roman", serif;
 }
 
 .main-nav ul {
@@ -57,13 +61,13 @@ a {
 }
 
 .main-nav a {
-    color: #4b5563;
+    color: #d1d5db;
     font-size: 15px;
 }
 
 .main-nav a.active,
 .main-nav a:hover {
-    color: #111827;
+    color: #ffffff;
 }
 
 .nav-icons {
@@ -71,31 +75,109 @@ a {
     align-items: center;
     gap: 12px;
     font-size: 17px;
+    color: #e5e7eb;
+}
+
+.icon-link {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-link svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    min-width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    padding: 0 5px;
+    background: #1d4ed8;
+    color: #ffffff;
+    font-size: 11px;
+    font-style: normal;
+    line-height: 17px;
+    text-align: center;
 }
 
 main {
     min-height: calc(100vh - 168px);
-    padding: 26px 0 44px;
+    padding: 22px 0 44px;
 }
 
 .site-footer {
-    border-top: 1px solid #e5e7eb;
-    color: #6b7280;
+    border-top: 1px solid #262d39;
+    color: #d1d5db;
     text-align: center;
-    padding: 16px 12px;
-    background: #ffffff;
+    padding: 20px 12px;
+    background: #111722;
 }
 
 @media (max-width: 992px) {
+    .container {
+        width: min(980px, 94%);
+    }
+
+    .brand {
+        font-size: 24px;
+    }
+
     .main-nav ul {
         gap: 14px;
+    }
+
+    .main-nav a {
+        font-size: 14px;
     }
 }
 
 @media (max-width: 640px) {
+    .topbar {
+        font-size: 10px;
+        letter-spacing: 0.6px;
+    }
+
     .navbar {
         flex-wrap: wrap;
         justify-content: center;
-        padding: 12px 0;
+        padding: 10px 0;
+        min-height: 64px;
+    }
+
+    .brand {
+        font-size: 22px;
+    }
+
+    .main-nav ul {
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .main-nav a {
+        font-size: 13px;
+    }
+
+    .icon-link {
+        width: 20px;
+        height: 20px;
+    }
+
+    .icon-link svg {
+        width: 18px;
+        height: 18px;
     }
 }

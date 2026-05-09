@@ -35,9 +35,13 @@ $relatedPosts = blogGetRelatedPosts($conn, $currentPost['category'], $currentPos
         </div>
 
         <div class="post-content">
-            <?php foreach ($currentPost['content'] as $paragraph): ?>
-                <p><?php echo htmlspecialchars($paragraph); ?></p>
-            <?php endforeach; ?>
+            <?php if (!empty($currentPost['content_html'])): ?>
+                <?php echo blogSanitizeHtml($currentPost['content_html']); ?>
+            <?php else: ?>
+                <?php foreach ($currentPost['content'] as $paragraph): ?>
+                    <p><?php echo htmlspecialchars($paragraph); ?></p>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </article>
 

@@ -1,0 +1,382 @@
+.home-page {
+    background: #ffffff;
+}
+
+.hero {
+    background: #1a202c;
+    color: #f8fafc;
+    padding: 52px 0 44px;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 28px;
+    align-items: center;
+}
+
+.hero-copy .eyebrow {
+    font-size: 12px;
+    letter-spacing: 1.4px;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+}
+
+.hero-copy h1 {
+    font-size: 46px;
+    line-height: 1.14;
+    font-weight: 500;
+    margin-bottom: 14px;
+    font-family: "Times New Roman", serif;
+}
+
+.hero-copy .subtitle {
+    color: #d1d5db;
+    max-width: 560px;
+    font-size: 16px;
+}
+
+.hero-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #ffffff;
+    color: #111827;
+}
+
+.btn-primary:hover {
+    background: #e5e7eb;
+}
+
+.btn-ghost {
+    border: 1px solid #9ca3af;
+    color: #f8fafc;
+}
+
+.btn-ghost:hover {
+    border-color: #ffffff;
+}
+
+.hero-highlight {
+    position: relative;
+}
+
+.hero-highlight img {
+    width: 100%;
+    height: 455px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.highlight-badge {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    background: rgba(17, 24, 39, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+}
+
+.home-section {
+    padding: 38px 0 12px;
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.section-head h2 {
+    font-size: 42px;
+    color: #111827;
+    font-family: "Times New Roman", serif;
+    font-weight: 500;
+}
+
+.section-head h2 span {
+    font-size: 22px;
+    font-weight: 400;
+    margin-right: 2px;
+}
+
+.section-head a {
+    color: #2563eb;
+    font-size: 15px;
+}
+
+.home-promo {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: 1.1fr 2fr;
+    gap: 14px;
+}
+
+.promo-coupon {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 18px;
+}
+
+.promo-coupon h3 {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+.promo-coupon p {
+    color: #374151;
+}
+
+.coupon-code {
+    margin: 10px 0 6px;
+    background: #111827;
+    color: #ffffff;
+    border-radius: 8px;
+    display: inline-block;
+    padding: 6px 10px;
+}
+
+.promo-coupon small {
+    color: #6b7280;
+}
+
+.promo-benefits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.promo-benefits article {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 16px;
+    min-height: 96px;
+}
+
+.promo-benefits h4 {
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.promo-benefits p {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.category-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 22px;
+    min-height: 140px;
+}
+
+.placeholder-card {
+    border-style: dashed;
+}
+
+.category-card h3 {
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.category-card p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.product-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.product-card img {
+    width: 100%;
+    height: 290px;
+    object-fit: cover;
+}
+
+.product-info {
+    padding: 14px;
+}
+
+.product-category {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.product-info h3 {
+    color: #111827;
+    font-size: 30px;
+    font-family: "Times New Roman", serif;
+    font-weight: 500;
+    margin: 4px 0 6px;
+    line-height: 1.1;
+    min-height: 66px;
+}
+
+.product-price {
+    color: #b45309;
+    font-weight: 700;
+}
+
+.home-news {
+    padding-bottom: 42px;
+}
+
+.instagram-block p {
+    color: #6b7280;
+}
+
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.news-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    overflow: hidden;
+}
+
+.news-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.news-card div {
+    padding: 18px;
+}
+
+.news-card h3 {
+    color: #111827;
+    font-size: 32px;
+    font-family: "Times New Roman", serif;
+    font-weight: 500;
+    line-height: 1.25;
+    margin-bottom: 8px;
+}
+
+.news-card p {
+    color: #6b7280;
+}
+
+.news-card.placeholder-card {
+    grid-template-columns: 1fr;
+}
+
+@media (max-width: 992px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-copy h1 {
+        font-size: 36px;
+    }
+
+    .category-grid,
+    .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-promo {
+        grid-template-columns: 1fr;
+    }
+
+    .news-card {
+        grid-template-columns: 1fr;
+    }
+
+    .news-card img {
+        height: 240px;
+    }
+
+    .product-card img {
+        height: 240px;
+    }
+
+    .product-info h3 {
+        font-size: 26px;
+        min-height: 58px;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero {
+        padding-top: 36px;
+    }
+
+    .hero-copy h1 {
+        font-size: 30px;
+    }
+
+    .hero-highlight img {
+        height: 290px;
+    }
+
+    .hero-actions {
+        flex-wrap: wrap;
+    }
+
+    .section-head h2 {
+        font-size: 30px;
+    }
+
+    .category-grid,
+    .product-grid,
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-card img {
+        height: 260px;
+    }
+
+    .product-info h3 {
+        font-size: 28px;
+        min-height: 0;
+    }
+
+    .news-card h3 {
+        font-size: 28px;
+    }
+}

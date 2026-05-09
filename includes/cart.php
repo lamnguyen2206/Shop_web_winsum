@@ -8,21 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = isset($_POST['action']) ? (string) $_POST['action'] : '';
 
     if ($action === 'update_qty' && isset($_POST['qty']) && is_array($_POST['qty'])) {
-        $qtyMap = $_POST['qty'];
-        foreach ($cartItems as &$item) {
-            if (isset($qtyMap[$item['id']])) {
-                $item['qty'] = max(1, (int) $qtyMap[$item['id']]);
-            }
-        }
-        unset($item);
-        cartSetItems($cartItems);
+        cartUpdateQuantities($_POST['qty']);
         $cartNotice = 'Đã cập nhật số lượng sản phẩm.';
     } elseif ($action === 'remove_item' && isset($_POST['item_id'])) {
         $itemId = (string) $_POST['item_id'];
-        $cartItems = array_values(array_filter($cartItems, static function ($item) use ($itemId) {
-            return $item['id'] !== $itemId;
-        }));
-        cartSetItems($cartItems);
+        cartRemoveItemById($itemId);
         $cartNotice = 'Đã xóa sản phẩm khỏi giỏ hàng.';
     } elseif ($action === 'apply_coupon') {
         $coupon = strtoupper(trim((string) ($_POST['coupon_code'] ?? '')));
@@ -54,7 +44,7 @@ $totals = cartCalculateTotals($cartItems);
             <?php if (empty($cartItems)): ?>
                 <div class="cart-empty">
                     <p>Giỏ hàng của bạn đang trống.</p>
-                    <a class="read-more" href="index.php?view=blog">Tiếp tục mua sắm</a>
+                    <a class="read-more" href="index.php?view=catalog">Tiếp tục mua sắm</a>
                 </div>
             <?php else: ?>
                 <form method="post" action="index.php?view=cart">

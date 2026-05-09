@@ -1,92 +1,74 @@
 <?php
 require __DIR__ . '/cart-store.php';
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/order-repository.php';
+require_once __DIR__ . '/customer-auth.php';
 
 $cartItems = cartGetItems();
-$totals = cartCalculateTotals($cartItems);
 $orderPlaced = false;
 $orderMessage = '';
 $orderCode = '';
+$shippingMethods = orderGetShippingMethods($conn);
+$paymentMethods = orderGetPaymentMethods($conn);
+$currentCustomer = customerCurrent($conn);
+$selectedShippingId = (int) ($_POST['shipping_method_id'] ?? (!empty($shippingMethods) ? $shippingMethods[0]['id'] : 0));
+$selectedPaymentId = (int) ($_POST['payment_method_id'] ?? (!empty($paymentMethods) ? $paymentMethods[0]['id'] : 0));
+
+if (!isset($_SESSION['selected_shipping_fee']) && !empty($shippingMethods)) {
+    $_SESSION['selected_shipping_fee'] = (int) $shippingMethods[0]['fee'];
+}
+$totals = cartCalculateTotals($cartItems);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_submit'])) {
     $customerName = trim((string) ($_POST['customer_name'] ?? ''));
     $customerPhone = trim((string) ($_POST['customer_phone'] ?? ''));
+    $customerEmail = trim((string) ($_POST['customer_email'] ?? ''));
     $customerAddress = trim((string) ($_POST['customer_address'] ?? ''));
+    $customerNote = trim((string) ($_POST['customer_note'] ?? ''));
+    $shippingMethodId = (int) ($_POST['shipping_method_id'] ?? 0);
+    $paymentMethodId = (int) ($_POST['payment_method_id'] ?? 0);
+    $selectedShipping = null;
+    foreach ($shippingMethods as $method) {
+        if ($method['id'] === $shippingMethodId) {
+            $selectedShipping = $method;
+            break;
+        }
+    }
+    if ($selectedShipping) {
+        $_SESSION['selected_shipping_fee'] = (int) $selectedShipping['fee'];
+    }
+    $totals = cartCalculateTotals($cartItems);
 
     if ($customerName === '' || $customerPhone === '' || $customerAddress === '') {
         $orderMessage = 'Vui lòng điền đầy đủ thông tin nhận hàng.';
     } elseif (empty($cartItems)) {
         $orderMessage = 'Giỏ hàng đang trống, chưa thể thanh toán.';
+    } elseif ($shippingMethodId <= 0 || $paymentMethodId <= 0) {
+        $orderMessage = 'Vui lòng chọn phương thức thanh toán và vận chuyển.';
     } else {
-        $couponCode = $_SESSION['cart_coupon'] ?? null;
-        $orderCode = 'WS' . date('YmdHis') . random_int(10, 99);
-
-        $conn->begin_transaction();
         try {
-            $stmtOrder = $conn->prepare("INSERT INTO orders
-                (order_code, customer_name, customer_phone, customer_email, customer_address, customer_note, coupon_code, subtotal, shipping_fee, discount_amount, grand_total, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
-            if (!$stmtOrder) {
-                throw new RuntimeException('Không tạo được câu lệnh lưu đơn hàng.');
-            }
-
-            $customerEmail = trim((string) ($_POST['customer_email'] ?? ''));
-            $customerNote = trim((string) ($_POST['customer_note'] ?? ''));
-            $customerEmail = $customerEmail !== '' ? $customerEmail : null;
-            $customerNote = $customerNote !== '' ? $customerNote : null;
-            $couponCode = $couponCode !== '' ? $couponCode : null;
-
-            $subtotal = (float) $totals['subtotal'];
-            $shipping = (float) $totals['shipping'];
-            $discount = (float) $totals['discount'];
-            $grandTotal = (float) $totals['total'];
-
-            $stmtOrder->bind_param(
-                'sssssssdddd',
-                $orderCode,
-                $customerName,
-                $customerPhone,
-                $customerEmail,
-                $customerAddress,
-                $customerNote,
-                $couponCode,
-                $subtotal,
-                $shipping,
-                $discount,
-                $grandTotal
+            $orderCode = orderCreateFromCheckout(
+                $conn,
+                [
+                    'name' => $customerName,
+                    'phone' => $customerPhone,
+                    'email' => $customerEmail,
+                    'address' => $customerAddress,
+                    'note' => $customerNote,
+                ],
+                $cartItems,
+                $totals,
+                (string) ($_SESSION['cart_coupon'] ?? ''),
+                $currentCustomer ? (int) $currentCustomer['id'] : null,
+                $shippingMethodId,
+                $paymentMethodId
             );
-            $stmtOrder->execute();
-            $orderId = (int) $stmtOrder->insert_id;
-            $stmtOrder->close();
-
-            $stmtItem = $conn->prepare("INSERT INTO order_items
-                (order_id, product_sku, product_name, product_image, unit_price, quantity, line_total)
-                VALUES (?, ?, ?, ?, ?, ?, ?)");
-            if (!$stmtItem) {
-                throw new RuntimeException('Không tạo được câu lệnh lưu chi tiết đơn hàng.');
-            }
-
-            foreach ($cartItems as $item) {
-                $sku = (string) $item['sku'];
-                $name = (string) $item['name'];
-                $image = (string) $item['image'];
-                $unitPrice = (float) $item['price'];
-                $quantity = (int) $item['qty'];
-                $lineTotal = $unitPrice * $quantity;
-                $stmtItem->bind_param('isssdid', $orderId, $sku, $name, $image, $unitPrice, $quantity, $lineTotal);
-                $stmtItem->execute();
-            }
-            $stmtItem->close();
-
-            $conn->commit();
             $orderPlaced = true;
             $orderMessage = 'Đặt hàng thành công. Mã đơn của bạn là ' . $orderCode . '.';
-            $_SESSION['cart_items'] = [];
-            $_SESSION['cart_coupon'] = '';
+            cartClear();
+            $_SESSION['selected_shipping_fee'] = !empty($shippingMethods) ? (int) $shippingMethods[0]['fee'] : 0;
             $cartItems = [];
             $totals = cartCalculateTotals($cartItems);
         } catch (Throwable $e) {
-            $conn->rollback();
             $orderMessage = 'Không thể lưu đơn hàng vào hệ thống. Vui lòng thử lại.';
         }
     }
@@ -94,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_submit'])) {
 ?>
 
 <section class="container checkout-page">
-    <p class="breadcrumb"><a href="index.php">Trang chủ</a> / <a href="index.php?view=cart">Giỏ hàng</a> / <span>Thanh toán</span></p>
+    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <a href="index.php?view=cart">Giỏ hàng</a> / <span>Thanh toán</span></p>
     <h1>Thông tin thanh toán</h1>
 
     <?php if ($orderMessage !== ''): ?>
@@ -104,19 +86,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_submit'])) {
     <div class="checkout-layout">
         <form method="post" action="index.php?view=checkout" class="checkout-form">
             <label for="customer_name">Họ và tên</label>
-            <input id="customer_name" type="text" name="customer_name" required>
+            <input id="customer_name" type="text" name="customer_name" required value="<?php echo htmlspecialchars((string) ($currentCustomer['full_name'] ?? $_POST['customer_name'] ?? '')); ?>">
 
             <label for="customer_phone">Số điện thoại</label>
-            <input id="customer_phone" type="text" name="customer_phone" required>
+            <input id="customer_phone" type="text" name="customer_phone" required value="<?php echo htmlspecialchars((string) ($currentCustomer['phone'] ?? $_POST['customer_phone'] ?? '')); ?>">
 
             <label for="customer_email">Email (không bắt buộc)</label>
-            <input id="customer_email" type="email" name="customer_email">
+            <input id="customer_email" type="email" name="customer_email" value="<?php echo htmlspecialchars((string) ($currentCustomer['email'] ?? $_POST['customer_email'] ?? '')); ?>">
 
             <label for="customer_address">Địa chỉ nhận hàng</label>
-            <textarea id="customer_address" name="customer_address" rows="4" required></textarea>
+            <textarea id="customer_address" name="customer_address" rows="4" required><?php echo htmlspecialchars((string) ($_POST['customer_address'] ?? '')); ?></textarea>
 
             <label for="customer_note">Ghi chú đơn hàng</label>
-            <textarea id="customer_note" name="customer_note" rows="3"></textarea>
+            <textarea id="customer_note" name="customer_note" rows="3"><?php echo htmlspecialchars((string) ($_POST['customer_note'] ?? '')); ?></textarea>
+
+            <label for="shipping_method_id">Phương thức vận chuyển</label>
+            <select id="shipping_method_id" name="shipping_method_id" required>
+                <option value="">Chọn phương thức vận chuyển</option>
+                <?php foreach ($shippingMethods as $method): ?>
+                    <option value="<?php echo (int) $method['id']; ?>" <?php echo ($selectedShippingId === (int) $method['id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($method['name']); ?> - <?php echo number_format($method['fee'], 0, ',', '.'); ?>đ (<?php echo htmlspecialchars($method['eta_label']); ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <label for="payment_method_id">Phương thức thanh toán</label>
+            <select id="payment_method_id" name="payment_method_id" required>
+                <option value="">Chọn phương thức thanh toán</option>
+                <?php foreach ($paymentMethods as $method): ?>
+                    <option value="<?php echo (int) $method['id']; ?>" <?php echo ($selectedPaymentId === (int) $method['id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($method['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
             <button type="submit" name="checkout_submit" value="1">XÁC NHẬN ĐẶT HÀNG</button>
         </form>
