@@ -13,39 +13,57 @@ function adminConfig(): array
     return is_array($config) ? $config : [];
 }
 
-function adminCurrent(): bool
+function customerIsAdminRole(?array $customer): bool
 {
-    return !empty($_SESSION['admin_logged_in']);
+    return $customer !== null && ($customer['role'] ?? 'customer') === 'admin';
 }
 
+function adminSyncSessionForCustomer(?array $customer): void
+{
+    if (customerIsAdminRole($customer)) {
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_username'] = (string) ($customer['full_name'] ?? 'Admin');
+        $_SESSION['customer_role'] = 'admin';
+        return;
+    }
+
+    unset($_SESSION['admin_logged_in'], $_SESSION['admin_username'], $_SESSION['customer_role']);
+}
+
+function adminCurrent(): bool
+{
+    if (!empty($_SESSION['admin_logged_in']) || ($_SESSION['customer_role'] ?? '') === 'admin') {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @deprecated Đăng nhập admin qua form khách (customerLogin).
+ */
 function adminLogin(string $username, string $password): array
 {
-    $config = adminConfig();
-    $expectedUser = (string) ($config['username'] ?? '');
-    $passwordHash = (string) ($config['password_hash'] ?? '');
-
-    if ($expectedUser === '' || $passwordHash === '') {
-        return ['ok' => false, 'message' => 'Chưa cấu hình tài khoản admin. Tạo file config/admin.php từ config/admin.example.php.'];
-    }
-
-    if ($username !== $expectedUser || !password_verify($password, $passwordHash)) {
-        return ['ok' => false, 'message' => 'Tên đăng nhập hoặc mật khẩu admin không đúng.'];
-    }
-
-    $_SESSION['admin_logged_in'] = true;
-    $_SESSION['admin_username'] = $expectedUser;
-    return ['ok' => true, 'message' => 'Đăng nhập admin thành công.'];
+    return ['ok' => false, 'message' => 'Vui lòng đăng nhập bằng form tài khoản trên trang chủ.'];
 }
 
 function adminLogout(): void
 {
-    unset($_SESSION['admin_logged_in'], $_SESSION['admin_username']);
+    unset($_SESSION['admin_logged_in'], $_SESSION['admin_username'], $_SESSION['customer_role']);
 }
 
 function adminRequire(): void
 {
-    if (!adminCurrent()) {
-        header('Location: index.php?view=admin-login&redirect=' . urlencode((string) ($_GET['view'] ?? 'admin-dashboard')));
-        exit;
+    if (adminCurrent()) {
+        return;
     }
+
+    $_SESSION['auth_flash'] = [
+        'message' => 'Vui lòng đăng nhập tài khoản quản trị.',
+        'success' => false,
+        'open' => 'login',
+        'prefill' => [],
+    ];
+    header('Location: index.php?view=home');
+    exit;
 }

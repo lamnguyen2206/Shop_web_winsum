@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/order-repository.php';
 require_once __DIR__ . '/csrf.php';
 
@@ -23,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $orders = orderGetAllOrders($conn, 100);
         } elseif ($action === 'admin_logout') {
-            adminLogout();
-            header('Location: index.php?view=admin-login');
+            customerLogout();
+            header('Location: index.php?view=home');
             exit;
         }
     }

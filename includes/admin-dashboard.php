@@ -1,13 +1,14 @@
 <?php
 require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/admin-stats.php';
 require_once __DIR__ . '/csrf.php';
 
 adminRequire();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate() && ($_POST['action'] ?? '') === 'admin_logout') {
-    adminLogout();
-    header('Location: index.php?view=admin-login');
+    customerLogout();
+    header('Location: index.php?view=home');
     exit;
 }
 

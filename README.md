@@ -17,24 +17,24 @@
 mysql -u root -p < database/winsumhome_schema.sql
 ```
 
-Nếu DB đã tạo trước đó, chạy thêm tồn kho:
+Nếu DB đã tạo trước đó, chạy thêm:
 
 ```bash
 mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
 mysql -u root -p winsumweb < database/schema/14_seed_inventory.sql
+mysql -u root -p winsumweb < database/schema/15_customer_role_admin.sql
 ```
 
 3. Cấu hình `config/database.php` (mẫu: `config/database.example.php`), database `winsumweb`.
-4. Cấu hình admin: `config/admin.php` (mẫu: `config/admin.example.php`).
-5. Mở: `http://localhost/webfinal/index.php`
+4. Mở: `http://localhost/webfinal/index.php` (lần đầu tự tạo tài khoản admin trong DB nếu chưa có).
 
 ## Tài khoản demo
 
 | Loại | Thông tin |
 |------|-----------|
-| Admin | `admin` / `admin123` → `?view=admin-login` |
+| Admin | Đăng nhập **chung** form khách: `admin` / `admin123` (hoặc `admin@winsumhome.vn`, `0901000000`) → chuyển tới bảng quản trị |
 | Mã giảm giá | `WINSUMXINCHAO` (giảm 40.000đ) |
-| Khách hàng | Đăng ký tại `?view=account` |
+| Khách hàng | Đăng ký qua popup **Đăng ký** trên trang chủ |
 
 ## Chức năng
 
@@ -70,7 +70,7 @@ mysql -u root -p winsumweb < database/schema/14_seed_inventory.sql
 | `cart` / `checkout` | Giỏ hàng / Thanh toán |
 | `account` / `orders` | Tài khoản / Đơn hàng |
 | `blog` / `post` | Tin tức |
-| `admin-login` | Đăng nhập quản trị |
+| `admin-login` | Chuyển về trang chủ (đăng nhập chung) |
 | `admin-dashboard` | Bảng điều khiển |
 | `admin-orders` | Quản lý đơn |
 | `admin-products` | CRUD sản phẩm |

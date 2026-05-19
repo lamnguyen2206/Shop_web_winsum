@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/review-repository.php';
 require_once __DIR__ . '/csrf.php';
 
@@ -29,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate()) {
             $adminMessage = 'Không thể xóa đánh giá.';
         }
     } elseif ($action === 'admin_logout') {
-        adminLogout();
-        header('Location: index.php?view=admin-login');
+        customerLogout();
+        header('Location: index.php?view=home');
         exit;
     }
 }
