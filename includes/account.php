@@ -9,7 +9,7 @@ $currentCustomer = customerCurrent($conn);
 $isAdmin = adminCurrent();
 
 if ($isAdmin && !$currentCustomer) {
-    header('Location: index.php?view=admin-dashboard');
+    header('Location: index.php?view=home');
     exit;
 }
 

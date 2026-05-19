@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/product-admin-repository.php';
 require_once __DIR__ . '/product-repository.php';
 require_once __DIR__ . '/csrf.php';
@@ -49,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate()) {
         header('Location: index.php?view=admin-products&msg=' . urlencode($result['message']));
         exit;
     } elseif ($action === 'admin_logout') {
-        adminLogout();
-        header('Location: index.php?view=admin-login');
+        customerLogout();
+        header('Location: index.php?view=home');
         exit;
     }
 }

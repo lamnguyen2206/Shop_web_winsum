@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS customers (
     birthday DATE DEFAULT NULL,
     gender ENUM('male', 'female', 'other') DEFAULT NULL,
     status ENUM('active', 'inactive', 'blocked') NOT NULL DEFAULT 'active',
+    role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
     last_login_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

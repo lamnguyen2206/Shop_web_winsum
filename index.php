@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/customer-auth.php';
 require_once __DIR__ . '/includes/customer-auth-post.php';
 require_once __DIR__ . '/includes/admin-auth.php';
 
+customerBootstrapAdminAccount($conn);
 customerAuthHandlePost($conn);
 
 $authFlash = customerAuthConsumeFlash();

@@ -10,9 +10,58 @@ function customerGenerateCode(): string
     return 'CUS' . date('Ymd') . random_int(1000, 9999);
 }
 
+/**
+ * Tự thêm cột role và tài khoản admin mặc định nếu DB chưa có (sau khi cập nhật code).
+ */
+function customerBootstrapAdminAccount(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+
+    $colCheck = $conn->query("SHOW COLUMNS FROM customers LIKE 'role'");
+    if ($colCheck && $colCheck->num_rows === 0) {
+        $conn->query(
+            "ALTER TABLE customers ADD COLUMN role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer' AFTER status"
+        );
+    }
+
+    $stmt = $conn->prepare("SELECT id FROM customers WHERE role = 'admin' LIMIT 1");
+    if (!$stmt) {
+        return;
+    }
+    $stmt->execute();
+    $exists = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($exists) {
+        return;
+    }
+
+    $code = 'ADM00001';
+    $name = 'admin';
+    $phone = '0901000000';
+    $email = 'admin@winsumhome.vn';
+    $hash = '$2y$10$LiwDdPmNl40o4nDcOw8H9O4UyStaVDFyclvHztxZjxfEP6T4Fna3K';
+    $status = 'active';
+    $role = 'admin';
+
+    $insert = $conn->prepare(
+        "INSERT INTO customers (customer_code, full_name, phone, email, password_hash, status, role)
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
+    );
+    if (!$insert) {
+        return;
+    }
+    $insert->bind_param('sssssss', $code, $name, $phone, $email, $hash, $status, $role);
+    @$insert->execute();
+    $insert->close();
+}
+
 function customerGetById(mysqli $conn, int $customerId): ?array
 {
-    $stmt = $conn->prepare("SELECT id, customer_code, full_name, phone, email, status
+    $stmt = $conn->prepare("SELECT id, customer_code, full_name, phone, email, status, role
                             FROM customers
                             WHERE id = ?
                             LIMIT 1");
@@ -33,7 +82,13 @@ function customerCurrent(mysqli $conn): ?array
     if ($customerId <= 0) {
         return null;
     }
-    return customerGetById($conn, $customerId);
+    $customer = customerGetById($conn, $customerId);
+    if ($customer !== null) {
+        require_once __DIR__ . '/admin-auth.php';
+        adminSyncSessionForCustomer($customer);
+    }
+
+    return $customer;
 }
 
 function customerRegister(mysqli $conn, string $fullName, string $phone, string $email, string $password): array
@@ -66,8 +121,8 @@ function customerRegister(mysqli $conn, string $fullName, string $phone, string 
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $customerCode = customerGenerateCode();
     $status = 'active';
-    $stmt = $conn->prepare("INSERT INTO customers (customer_code, full_name, phone, email, password_hash, status)
-                            VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO customers (customer_code, full_name, phone, email, password_hash, status, role)
+                            VALUES (?, ?, ?, ?, ?, ?, 'customer')");
     if (!$stmt) {
         return ['ok' => false, 'message' => 'Không thể tạo tài khoản.'];
     }
@@ -87,7 +142,7 @@ function customerLogin(mysqli $conn, string $identifier, string $password): arra
         return ['ok' => false, 'message' => 'Vui lòng nhập tên đăng nhập và mật khẩu.'];
     }
 
-    $stmt = $conn->prepare("SELECT id, password_hash, status FROM customers
+    $stmt = $conn->prepare("SELECT id, password_hash, status, role, full_name FROM customers
                             WHERE phone = ? OR email = ? OR full_name = ?
                             LIMIT 1");
     if (!$stmt) {
@@ -107,12 +162,22 @@ function customerLogin(mysqli $conn, string $identifier, string $password): arra
     }
 
     $_SESSION['customer_id'] = (int) $row['id'];
-    return ['ok' => true, 'message' => 'Đăng nhập thành công.'];
+    require_once __DIR__ . '/admin-auth.php';
+    $customer = customerGetById($conn, (int) $row['id']);
+    adminSyncSessionForCustomer($customer);
+
+    if (customerIsAdminRole($customer)) {
+        return ['ok' => true, 'message' => 'Đăng nhập quản trị thành công.', 'is_admin' => true];
+    }
+
+    return ['ok' => true, 'message' => 'Đăng nhập thành công.', 'is_admin' => false];
 }
 
 function customerLogout(): void
 {
     unset($_SESSION['customer_id']);
+    require_once __DIR__ . '/admin-auth.php';
+    adminLogout();
 }
 
 /**
@@ -205,7 +270,9 @@ function customerUpdateProfile(
  */
 function customerMayShopOnStorefront(?array $customer): bool
 {
-    unset($customer);
-    require_once __DIR__ . '/admin-auth.php';
-    return !adminCurrent();
+    if ($customer === null) {
+        return true;
+    }
+
+    return ($customer['role'] ?? 'customer') !== 'admin';
 }

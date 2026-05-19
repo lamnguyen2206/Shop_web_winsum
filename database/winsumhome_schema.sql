@@ -17,3 +17,4 @@ SOURCE database/schema/11_site_content.sql;
 SOURCE database/schema/12_seed_winsumhome.sql;
 SOURCE database/schema/13_inventory_alerts.sql;
 SOURCE database/schema/14_seed_inventory.sql;
+SOURCE database/schema/15_customer_role_admin.sql;

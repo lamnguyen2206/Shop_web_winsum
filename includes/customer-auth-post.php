@@ -67,6 +67,16 @@ function customerAuthHandlePost(mysqli $conn): void
 
     if ($action === 'login') {
         $result = customerLogin($conn, (string) ($_POST['identifier'] ?? ''), (string) ($_POST['password'] ?? ''));
+        if ($result['ok'] && !empty($result['is_admin'])) {
+            $_SESSION['auth_flash'] = [
+                'message' => $result['message'],
+                'success' => true,
+                'open' => null,
+                'prefill' => [],
+            ];
+            header('Location: index.php?view=admin-dashboard', true, 303);
+            exit;
+        }
         $_SESSION['auth_flash'] = [
             'message' => $result['message'],
             'success' => $result['ok'],
@@ -98,6 +108,7 @@ function customerAuthHandlePost(mysqli $conn): void
     }
 
     if ($action === 'logout') {
+        require_once __DIR__ . '/admin-auth.php';
         customerLogout();
         $_SESSION['auth_flash'] = [
             'message' => 'Bạn đã đăng xuất.',
