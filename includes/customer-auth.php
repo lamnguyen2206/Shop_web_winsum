@@ -43,7 +43,11 @@ function customerRegister(mysqli $conn, string $fullName, string $phone, string 
     $email = trim($email);
 
     if ($fullName === '' || $phone === '' || $password === '') {
-        return ['ok' => false, 'message' => 'Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu.'];
+        return ['ok' => false, 'message' => 'Vui lòng nhập đầy đủ tên đăng nhập, số điện thoại và mật khẩu.'];
+    }
+
+    if (strlen($password) < 6) {
+        return ['ok' => false, 'message' => 'Mật khẩu phải có ít nhất 6 ký tự.'];
     }
 
     $stmtExists = $conn->prepare("SELECT id FROM customers WHERE phone = ? OR (email = ? AND email IS NOT NULL)");
@@ -80,14 +84,16 @@ function customerLogin(mysqli $conn, string $identifier, string $password): arra
 {
     $identifier = trim($identifier);
     if ($identifier === '' || $password === '') {
-        return ['ok' => false, 'message' => 'Vui lòng nhập số điện thoại/email và mật khẩu.'];
+        return ['ok' => false, 'message' => 'Vui lòng nhập tên đăng nhập và mật khẩu.'];
     }
 
-    $stmt = $conn->prepare("SELECT id, password_hash, status FROM customers WHERE phone = ? OR email = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT id, password_hash, status FROM customers
+                            WHERE phone = ? OR email = ? OR full_name = ?
+                            LIMIT 1");
     if (!$stmt) {
         return ['ok' => false, 'message' => 'Không thể đăng nhập lúc này.'];
     }
-    $stmt->bind_param('ss', $identifier, $identifier);
+    $stmt->bind_param('sss', $identifier, $identifier, $identifier);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
@@ -107,4 +113,99 @@ function customerLogin(mysqli $conn, string $identifier, string $password): arra
 function customerLogout(): void
 {
     unset($_SESSION['customer_id']);
+}
+
+/**
+ * Cập nhật thông tin khách đang đăng nhập.
+ */
+function customerUpdateProfile(
+    mysqli $conn,
+    int $customerId,
+    string $fullName,
+    string $phone,
+    string $email,
+    string $newPassword = ''
+): array {
+    $fullName = trim($fullName);
+    $phone = trim($phone);
+    $email = trim($email);
+    $newPassword = trim($newPassword);
+
+    if ($customerId <= 0) {
+        return ['ok' => false, 'message' => 'Bạn cần đăng nhập để cập nhật thông tin.'];
+    }
+    if ($fullName === '' || $phone === '') {
+        return ['ok' => false, 'message' => 'Vui lòng nhập tên và số điện thoại.'];
+    }
+    if ($newPassword !== '' && strlen($newPassword) < 6) {
+        return ['ok' => false, 'message' => 'Mật khẩu mới phải có ít nhất 6 ký tự.'];
+    }
+
+    $emailParam = $email !== '' ? $email : null;
+
+    $stmtPhone = $conn->prepare('SELECT id FROM customers WHERE id <> ? AND phone = ? LIMIT 1');
+    if (!$stmtPhone) {
+        return ['ok' => false, 'message' => 'Không kiểm tra được thông tin trùng lặp.'];
+    }
+    $stmtPhone->bind_param('is', $customerId, $phone);
+    $stmtPhone->execute();
+    if ($stmtPhone->get_result()->fetch_assoc()) {
+        $stmtPhone->close();
+        return ['ok' => false, 'message' => 'Số điện thoại đã được tài khoản khác sử dụng.'];
+    }
+    $stmtPhone->close();
+
+    if ($emailParam !== null) {
+        $stmtEmail = $conn->prepare('SELECT id FROM customers WHERE id <> ? AND email = ? LIMIT 1');
+        if (!$stmtEmail) {
+            return ['ok' => false, 'message' => 'Không kiểm tra được thông tin trùng lặp.'];
+        }
+        $stmtEmail->bind_param('is', $customerId, $emailParam);
+        $stmtEmail->execute();
+        if ($stmtEmail->get_result()->fetch_assoc()) {
+            $stmtEmail->close();
+            return ['ok' => false, 'message' => 'Email đã được tài khoản khác sử dụng.'];
+        }
+        $stmtEmail->close();
+    }
+
+    if ($newPassword !== '') {
+        $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $conn->prepare(
+            'UPDATE customers SET full_name = ?, phone = ?, email = ?, password_hash = ? WHERE id = ? AND status = ?'
+        );
+        if (!$stmt) {
+            return ['ok' => false, 'message' => 'Không thể cập nhật tài khoản.'];
+        }
+        $status = 'active';
+        $stmt->bind_param('ssssis', $fullName, $phone, $emailParam, $hash, $customerId, $status);
+    } else {
+        $stmt = $conn->prepare(
+            'UPDATE customers SET full_name = ?, phone = ?, email = ? WHERE id = ? AND status = ?'
+        );
+        if (!$stmt) {
+            return ['ok' => false, 'message' => 'Không thể cập nhật tài khoản.'];
+        }
+        $status = 'active';
+        $stmt->bind_param('sssis', $fullName, $phone, $emailParam, $customerId, $status);
+    }
+
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    if (!$ok) {
+        return ['ok' => false, 'message' => 'Không thể cập nhật tài khoản.'];
+    }
+
+    return ['ok' => true, 'message' => 'Đã cập nhật thông tin tài khoản.'];
+}
+
+/**
+ * Khách có thể mua trên storefront (trừ phi đang đăng nhập quản trị cùng phiên).
+ */
+function customerMayShopOnStorefront(?array $customer): bool
+{
+    unset($customer);
+    require_once __DIR__ . '/admin-auth.php';
+    return !adminCurrent();
 }

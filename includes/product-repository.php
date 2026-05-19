@@ -6,6 +6,16 @@ function productFormatPrice(float $amount): string
     return number_format($amount, 0, ',', '.') . 'đ';
 }
 
+function productStockStatusLabel(string $status): string
+{
+    $map = [
+        'in_stock' => 'Còn hàng',
+        'out_of_stock' => 'Hết hàng',
+        'preorder' => 'Đặt trước',
+    ];
+    return $map[$status] ?? $status;
+}
+
 function productGetFilterCategories(mysqli $conn): array
 {
     $result = $conn->query("SELECT id, name, slug FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, name ASC");
@@ -105,6 +115,8 @@ function productMapListRow(array $row): array
         'sku' => $row['sku'],
         'short_description' => $row['short_description'] ?? '',
         'base_price' => (float) $row['base_price'],
+        'compare_at_price' => isset($row['compare_at_price']) && $row['compare_at_price'] !== null
+            ? (float) $row['compare_at_price'] : null,
         'price_label' => productFormatPrice((float) $row['base_price']),
         'stock_status' => $row['stock_status'],
         'category_name' => $row['category_name'] ?? 'Chưa phân loại',
@@ -223,7 +235,7 @@ function productSearchProducts(mysqli $conn, array $filters, int $limit = 12, in
 {
     $conditions = productBuildSearchConditions($filters);
     $sortSql = productResolveSortSql($filters['sort']);
-    $sql = "SELECT p.id, p.name, p.slug, p.sku, p.short_description, p.base_price, p.stock_status,
+    $sql = "SELECT p.id, p.name, p.slug, p.sku, p.short_description, p.base_price, p.compare_at_price, p.stock_status,
                    c.name AS category_name, c.slug AS category_slug,
                    b.name AS brand_name, b.slug AS brand_slug,
                    pi.image_url
@@ -260,7 +272,7 @@ function productSearchProducts(mysqli $conn, array $filters, int $limit = 12, in
 function productGetBySlug(mysqli $conn, string $slug): ?array
 {
     $sql = "SELECT p.id, p.category_id, p.name, p.slug, p.sku, p.short_description, p.description, p.base_price, p.compare_at_price,
-                   p.stock_status, p.material, p.color, p.warranty_months,
+                   p.stock_status, p.material, p.color, p.warranty_months, p.rating_average, p.rating_count,
                    c.name AS category_name, c.slug AS category_slug
             FROM products p
             JOIN categories c ON c.id = p.category_id
@@ -297,6 +309,8 @@ function productGetBySlug(mysqli $conn, string $slug): ?array
         'material' => $row['material'] ?? '',
         'color' => $row['color'] ?? '',
         'warranty_months' => $row['warranty_months'] !== null ? (int) $row['warranty_months'] : null,
+        'rating_average' => round((float) ($row['rating_average'] ?? 0), 1),
+        'rating_count' => (int) ($row['rating_count'] ?? 0),
         'category_name' => $row['category_name'],
         'category_slug' => $row['category_slug'],
         'images' => [],
@@ -386,5 +400,191 @@ function productGetById(mysqli $conn, int $id): ?array
         'image' => $row['image_url'] ?: 'assets/images/blog_1.png',
         'category' => $row['category_name'],
         'stock_status' => $row['stock_status'],
+    ];
+}
+
+/**
+ * Sản phẩm bán chạy (tổng số lượng trong đơn hàng hợp lệ).
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function productGetBestSellers(mysqli $conn, int $limit = 6): array
+{
+    $limit = max(1, min(24, $limit));
+    $sql = "SELECT p.id, p.slug, p.name, p.base_price, p.is_featured,
+                   c.name AS category_name,
+                   COALESCE(pi.image_url, 'assets/images/blog_1.png') AS image_url,
+                   COALESCE(sales.units_sold, 0) AS units_sold
+            FROM products p
+            JOIN categories c ON c.id = p.category_id
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN (
+                SELECT oi.product_id, SUM(oi.quantity) AS units_sold
+                FROM order_items oi
+                INNER JOIN orders o ON o.id = oi.order_id
+                WHERE oi.product_id IS NOT NULL
+                  AND o.status NOT IN ('cancelled', 'returned')
+                  AND o.fulfillment_status NOT IN ('cancelled', 'returned')
+                GROUP BY oi.product_id
+            ) sales ON sales.product_id = p.id
+            WHERE p.is_active = 1
+              AND (p.published_at IS NULL OR p.published_at <= NOW())
+            ORDER BY units_sold DESC, p.is_featured DESC, p.published_at DESC, p.id DESC
+            LIMIT " . (int) $limit;
+
+    $result = $conn->query($sql);
+    if (!$result) {
+        return [];
+    }
+
+    $items = [];
+    while ($row = $result->fetch_assoc()) {
+        if ((int) $row['units_sold'] <= 0) {
+            continue;
+        }
+        $items[] = [
+            'id' => (int) $row['id'],
+            'slug' => $row['slug'],
+            'name' => $row['name'],
+            'category' => $row['category_name'],
+            'price' => productFormatPrice((float) $row['base_price']),
+            'image' => $row['image_url'],
+            'units_sold' => (int) $row['units_sold'],
+        ];
+    }
+    return $items;
+}
+
+/**
+ * Gợi ý + sản phẩm cho tìm kiếm AJAX (header / catalog).
+ *
+ * @return array<string, mixed>
+ */
+function productSearchAjax(mysqli $conn, string $query, int $productLimit = 8, int $suggestionLimit = 5): array
+{
+    $query = trim($query);
+    if (mb_strlen($query) < 2) {
+        return [
+            'ok' => true,
+            'query' => $query,
+            'suggestions' => [],
+            'products' => [],
+            'total' => 0,
+            'catalog_url' => 'index.php?view=catalog',
+        ];
+    }
+
+    $filters = productBuildFiltersFromRequest();
+    $filters['q'] = $query;
+    $filters['sort'] = 'featured';
+
+    $total = productCountSearchProducts($conn, $filters);
+    $rows = productSearchProducts($conn, $filters, max(1, min(12, $productLimit)), 0);
+
+    $products = [];
+    foreach ($rows as $row) {
+        $base = (float) $row['base_price'];
+        $compare = !empty($row['compare_at_price']) ? (float) $row['compare_at_price'] : 0.0;
+
+        $discountPercent = null;
+        if ($compare > $base && $compare > 0) {
+            $discountPercent = (int) round((1 - $base / $compare) * 100);
+        }
+
+        $products[] = [
+            'id' => (int) $row['id'],
+            'name' => $row['name'],
+            'slug' => $row['slug'],
+            'image' => $row['image'],
+            'price_label' => $row['price_label'],
+            'compare_price_label' => $compare > $base ? productFormatPrice($compare) : null,
+            'discount_percent' => $discountPercent,
+            'category_name' => $row['category_name'],
+            'url' => 'index.php?view=product&slug=' . rawurlencode($row['slug']),
+        ];
+    }
+
+    $suggestions = [];
+    $seen = [];
+
+    $stmtCat = $conn->prepare("SELECT name, slug FROM categories
+                               WHERE is_active = 1 AND name LIKE CONCAT('%', ?, '%')
+                               ORDER BY sort_order ASC LIMIT 2");
+    if ($stmtCat) {
+        $stmtCat->bind_param('s', $query);
+        $stmtCat->execute();
+        $catResult = $stmtCat->get_result();
+        while ($cat = $catResult->fetch_assoc()) {
+            $key = 'cat:' . $cat['slug'];
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $suggestions[] = [
+                    'type' => 'category',
+                    'text' => $query . ' trong ' . $cat['name'],
+                    'highlight' => $cat['name'],
+                    'url' => 'index.php?view=catalog&category=' . rawurlencode($cat['slug']) . '&q=' . rawurlencode($query),
+                ];
+            }
+        }
+        $stmtCat->close();
+    }
+
+    foreach ($rows as $row) {
+        if (count($suggestions) >= $suggestionLimit) {
+            break;
+        }
+        $text = mb_strtolower($row['name'], 'UTF-8');
+        $key = 'p:' . $text;
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $suggestions[] = [
+            'type' => 'keyword',
+            'text' => $row['name'],
+            'highlight' => null,
+            'url' => 'index.php?view=catalog&q=' . rawurlencode($row['name']),
+        ];
+    }
+
+    if (count($suggestions) < $suggestionLimit) {
+        $stmtKw = $conn->prepare("SELECT DISTINCT p.name FROM products p
+                                  WHERE p.is_active = 1
+                                    AND (p.name LIKE CONCAT('%', ?, '%') OR p.short_description LIKE CONCAT('%', ?, '%'))
+                                  ORDER BY p.is_featured DESC, p.name ASC
+                                  LIMIT ?");
+        if ($stmtKw) {
+            $extra = $suggestionLimit + 3;
+            $stmtKw->bind_param('ssi', $query, $query, $extra);
+            $stmtKw->execute();
+            $kwResult = $stmtKw->get_result();
+            while ($kw = $kwResult->fetch_assoc()) {
+                if (count($suggestions) >= $suggestionLimit) {
+                    break;
+                }
+                $text = (string) $kw['name'];
+                $key = 'p:' . mb_strtolower($text, 'UTF-8');
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $suggestions[] = [
+                    'type' => 'keyword',
+                    'text' => $text,
+                    'highlight' => null,
+                    'url' => 'index.php?view=catalog&q=' . rawurlencode($text),
+                ];
+            }
+            $stmtKw->close();
+        }
+    }
+
+    return [
+        'ok' => true,
+        'query' => $query,
+        'suggestions' => $suggestions,
+        'products' => $products,
+        'total' => $total,
+        'catalog_url' => 'index.php?view=catalog&q=' . rawurlencode($query),
     ];
 }

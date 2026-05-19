@@ -3,20 +3,8 @@ require __DIR__ . '/home-repository.php';
 
 $heroBanner = homeGetHeroBanner($conn);
 $featuredCategories = homeGetFeaturedCategories($conn, 3);
-$featuredProducts = homeGetFeaturedProducts($conn, 3);
+$bestsellerProducts = homeGetBestsellerProducts($conn, 6);
 $newsPosts = homeGetNewsPosts($conn, 2);
-
-if (empty($featuredCategories)) {
-    $featuredCategories = [];
-}
-
-if (empty($featuredProducts)) {
-    $featuredProducts = [];
-}
-
-if (empty($newsPosts)) {
-    $newsPosts = [];
-}
 ?>
 
 <section class="home-page">
@@ -38,6 +26,8 @@ if (empty($newsPosts)) {
         </div>
     </section>
 
+    <?php include __DIR__ . '/home-auth-section.php'; ?>
+
     <section class="home-promo container">
         <article class="promo-coupon">
             <h3>XIN CHAO</h3>
@@ -55,14 +45,14 @@ if (empty($newsPosts)) {
 
     <section class="home-section container">
         <div class="section-head">
-            <h2><span>our</span>CATEGORY</h2>
+            <h2>Our Category</h2>
             <a href="index.php?view=catalog">Xem tất cả</a>
         </div>
         <div class="category-grid">
             <?php if (empty($featuredCategories)): ?>
                 <article class="category-card placeholder-card">
                     <h3>Khung danh mục Winsum</h3>
-                    <p>Thêm dữ liệu danh mục từ bảng <strong>categories</strong> để hiển thị tự động tại đây.</p>
+                    <p>Thêm dữ liệu danh mục từ bảng <strong>categories</strong>.</p>
                 </article>
             <?php else: ?>
                 <?php foreach ($featuredCategories as $category): ?>
@@ -75,30 +65,33 @@ if (empty($newsPosts)) {
         </div>
     </section>
 
-    <section class="home-section container">
+    <section class="home-section container home-bestsellers">
         <div class="section-head">
-            <h2>Sản phẩm nổi bật</h2>
+            <h2>Sản phẩm chủ lực</h2>
             <a href="index.php?view=catalog">Tất cả sản phẩm</a>
         </div>
+        <p class="home-section-note">Đề xuất theo số lượng khách đã mua trên cửa hàng.</p>
         <div class="product-grid">
-            <?php if (empty($featuredProducts)): ?>
+            <?php if (empty($bestsellerProducts)): ?>
                 <article class="product-card placeholder-card">
                     <div class="product-info">
-                        <p class="product-category">Khung sản phẩm</p>
-                        <h3>Thêm dữ liệu từ database</h3>
-                        <p class="product-price">Bảng products + product_images</p>
+                        <h3>Chưa có dữ liệu bán hàng</h3>
+                        <p>Đánh dấu sản phẩm nổi bật trong quản trị hoặc chờ đơn hàng đầu tiên.</p>
                     </div>
                 </article>
             <?php else: ?>
-                <?php foreach ($featuredProducts as $product): ?>
+                <?php foreach ($bestsellerProducts as $product): ?>
                     <article class="product-card">
-                        <a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug'] ?? ''); ?>">
+                        <a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug'] ?? ''); ?>" class="product-card-image" title="Xem chi tiết: <?php echo htmlspecialchars($product['name']); ?>" aria-label="Xem chi tiết <?php echo htmlspecialchars($product['name']); ?>">
                             <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
                         </a>
                         <div class="product-info">
                             <p class="product-category"><?php echo htmlspecialchars($product['category']); ?></p>
                             <h3><a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug'] ?? ''); ?>"><?php echo htmlspecialchars($product['name']); ?></a></h3>
                             <p class="product-price"><?php echo htmlspecialchars($product['price']); ?></p>
+                            <?php if (!empty($product['units_sold'])): ?>
+                                <p class="product-sold-badge">Đã bán <?php echo (int) $product['units_sold']; ?></p>
+                            <?php endif; ?>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -108,36 +101,26 @@ if (empty($newsPosts)) {
 
     <section class="home-section home-news container">
         <div class="section-head">
-            <h2><span>our</span>BLOG</h2>
+            <h2>Our Blog</h2>
             <a href="index.php?view=blog">Đến trang blog</a>
         </div>
         <div class="news-grid">
             <?php if (empty($newsPosts)): ?>
-                <article class="news-card placeholder-card">
-                    <div>
-                        <h3>Khung blog Winsum</h3>
-                        <p>Thêm dữ liệu từ bảng <strong>blog_posts</strong> để hiển thị bài viết mới nhất tại đây.</p>
-                    </div>
-                </article>
+                <article class="news-card placeholder-card"><div><h3>Chưa có bài viết</h3></div></article>
             <?php else: ?>
                 <?php foreach ($newsPosts as $post): ?>
                     <article class="news-card">
-                        <img src="<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
+                        <a href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>">
+                            <img src="<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
+                        </a>
                         <div>
-                            <h3><?php echo htmlspecialchars($post['title']); ?></h3>
+                            <h3><a href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>"><?php echo htmlspecialchars($post['title']); ?></a></h3>
                             <p><?php echo htmlspecialchars($post['excerpt']); ?></p>
+                            <a class="read-more" href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>">Xem ngay</a>
                         </div>
                     </article>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-    </section>
-
-    <section class="home-section container instagram-block">
-        <div class="section-head">
-            <h2><span>follow</span>INSTAGRAM</h2>
-            <a href="#">@winsumhome</a>
-        </div>
-        <p>Cập nhật xu hướng nội thất và các mẫu đèn mới mỗi tuần.</p>
     </section>
 </section>

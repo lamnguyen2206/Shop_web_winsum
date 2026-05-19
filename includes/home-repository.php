@@ -101,3 +101,16 @@ function homeGetNewsPosts(mysqli $conn, int $limit = 2): array
     }
     return $posts;
 }
+
+/**
+ * Sản phẩm chủ lực: ưu tiên theo số lượng đã mua, không đủ thì lấy is_featured.
+ */
+function homeGetBestsellerProducts(mysqli $conn, int $limit = 6): array
+{
+    require_once __DIR__ . '/product-repository.php';
+    $fromSales = productGetBestSellers($conn, $limit);
+    if ($fromSales !== []) {
+        return $fromSales;
+    }
+    return homeGetFeaturedProducts($conn, $limit);
+}

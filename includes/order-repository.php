@@ -38,6 +38,41 @@ function orderGetPaymentMethods(mysqli $conn): array
     return $methods;
 }
 
+function orderFindShippingMethod(array $methods, int $id): ?array
+{
+    foreach ($methods as $method) {
+        if ((int) $method['id'] === $id) {
+            return $method;
+        }
+    }
+    return null;
+}
+
+function orderFindPaymentMethod(array $methods, int $id): ?array
+{
+    foreach ($methods as $method) {
+        if ((int) $method['id'] === $id) {
+            return $method;
+        }
+    }
+    return null;
+}
+
+/**
+ * Gán phí ship vào session theo ID phương thức (trả về phí hoặc null nếu không hợp lệ).
+ */
+function orderApplyShippingToSession(array $shippingMethods, int $shippingMethodId): ?int
+{
+    $method = orderFindShippingMethod($shippingMethods, $shippingMethodId);
+    if (!$method) {
+        return null;
+    }
+    $fee = (int) round((float) $method['fee']);
+    $_SESSION['selected_shipping_fee'] = $fee;
+    $_SESSION['checkout_shipping_method_id'] = (int) $method['id'];
+    return $fee;
+}
+
 function orderGenerateCode(): string
 {
     return 'WS' . date('YmdHis') . random_int(100, 999);
@@ -51,10 +86,12 @@ function orderCreateFromCheckout(
     ?string $couponCode,
     ?int $customerId,
     int $shippingMethodId,
-    int $paymentMethodId
+    int $paymentMethodId,
+    ?int $couponId = null
 ): string {
     $orderCode = orderGenerateCode();
     $couponCode = $couponCode ?: null;
+    $couponIdValue = $couponId && $couponId > 0 ? $couponId : null;
     $customerEmail = $customer['email'] !== '' ? $customer['email'] : null;
     $customerNote = $customer['note'] !== '' ? $customer['note'] : null;
 
@@ -62,8 +99,8 @@ function orderCreateFromCheckout(
     try {
         $stmtOrder = $conn->prepare("INSERT INTO orders
             (order_code, customer_id, customer_name, customer_phone, customer_email, customer_address, customer_note,
-             coupon_code, subtotal, shipping_fee, discount_amount, grand_total, status, fulfillment_status, payment_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', 'unpaid')");
+             coupon_id, coupon_code, subtotal, shipping_fee, discount_amount, grand_total, status, fulfillment_status, payment_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', 'unpaid')");
         if (!$stmtOrder) {
             throw new RuntimeException('Không tạo được lệnh lưu đơn hàng.');
         }
@@ -75,7 +112,7 @@ function orderCreateFromCheckout(
         $grandTotal = (float) $totals['total'];
 
         $stmtOrder->bind_param(
-            'sissssssdddd',
+            'sisssssisdddd',
             $orderCode,
             $customerIdValue,
             $customer['name'],
@@ -83,6 +120,7 @@ function orderCreateFromCheckout(
             $customerEmail,
             $customer['address'],
             $customerNote,
+            $couponIdValue,
             $couponCode,
             $subtotal,
             $shipping,
@@ -152,6 +190,14 @@ function orderCreateFromCheckout(
             $stmtHistory->execute();
             $stmtHistory->close();
         }
+
+        if ($couponIdValue) {
+            require_once __DIR__ . '/coupon-repository.php';
+            couponRecordRedemption($conn, (int) $couponIdValue, $customerId, $orderId);
+        }
+
+        require_once __DIR__ . '/inventory-repository.php';
+        inventoryDeductForOrder($conn, $cartItems, $orderId, $orderCode);
 
         $conn->commit();
         return $orderCode;
@@ -250,4 +296,76 @@ function orderGetCustomerOrderDetailByCode(mysqli $conn, int $customerId, string
     $order['shipment'] = $shipment;
     $order['payment'] = $payment;
     return $order;
+}
+
+function orderGetAllOrders(mysqli $conn, int $limit = 50): array
+{
+    $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, status, payment_status,
+                                   fulfillment_status, grand_total, ordered_at
+                            FROM orders
+                            ORDER BY id DESC
+                            LIMIT ?");
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $orders = [];
+    while ($row = $result->fetch_assoc()) {
+        $orders[] = $row;
+    }
+    $stmt->close();
+    return $orders;
+}
+
+function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string $changedBy = 'admin'): bool
+{
+    $allowed = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'];
+    if (!in_array($newStatus, $allowed, true)) {
+        return false;
+    }
+
+    $stmtCurrent = $conn->prepare("SELECT status FROM orders WHERE id = ? LIMIT 1");
+    if (!$stmtCurrent) {
+        return false;
+    }
+    $stmtCurrent->bind_param('i', $orderId);
+    $stmtCurrent->execute();
+    $current = $stmtCurrent->get_result()->fetch_assoc();
+    $stmtCurrent->close();
+    if (!$current) {
+        return false;
+    }
+
+    $fromStatus = (string) $current['status'];
+    $fulfillment = $newStatus;
+    if ($newStatus === 'cancelled' || $newStatus === 'returned') {
+        $fulfillment = $newStatus;
+    }
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("UPDATE orders SET status = ?, fulfillment_status = ?, updated_at = NOW() WHERE id = ?");
+        if (!$stmt) {
+            throw new RuntimeException('Không cập nhật được trạng thái đơn.');
+        }
+        $stmt->bind_param('ssi', $newStatus, $fulfillment, $orderId);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmtHistory = $conn->prepare("INSERT INTO order_status_histories (order_id, from_status, to_status, note, changed_by)
+                                       VALUES (?, ?, ?, 'Cập nhật từ trang quản trị', ?)");
+        if ($stmtHistory) {
+            $stmtHistory->bind_param('isss', $orderId, $fromStatus, $newStatus, $changedBy);
+            $stmtHistory->execute();
+            $stmtHistory->close();
+        }
+
+        $conn->commit();
+        return true;
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return false;
+    }
 }

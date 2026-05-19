@@ -8,17 +8,18 @@
 
 .blog-page .breadcrumb,
 .blog-detail .breadcrumb {
-    color: #6b7280;
-    font-size: 14px;
-    margin-bottom: 10px;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
 }
 
 .blog-page .blog-title {
     text-align: left;
-    font-size: 46px;
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
     margin-bottom: 0;
     font-weight: 500;
-    font-family: "Times New Roman", serif;
+    font-family: var(--font-serif, "Times New Roman", serif);
+    line-height: 1.15;
 }
 
 .blog-layout {
@@ -46,31 +47,39 @@
 }
 
 .blog-item-content h2 {
-    font-size: 38px;
-    font-family: "Times New Roman", serif;
-    line-height: 1.1;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    font-family: var(--font-serif, "Times New Roman", serif);
+    line-height: 1.2;
     margin-bottom: 8px;
-    font-weight: 400;
+    font-weight: 500;
 }
 
 .meta {
-    margin: 0 0 8px;
-    color: #6b7280;
-    font-size: 14px;
+    margin: 0 0 var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
 }
 
 .blog-item-content p {
-    color: #1f2937;
-    font-size: 16px;
-    line-height: 1.5;
+    color: var(--color-text);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
 }
 
 .read-more {
     display: inline-block;
-    margin-top: 6px;
-    color: #111111;
-    font-weight: 500;
-    border-bottom: 1px solid #111111;
+    margin-top: var(--space-2);
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: color var(--duration-fast);
+}
+
+.read-more:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .sidebar-block {
@@ -78,10 +87,10 @@
 }
 
 .blog-sidebar h3 {
-    font-size: 32px;
+    font-size: 1.35rem;
     margin-bottom: 10px;
     font-weight: 500;
-    font-family: "Times New Roman", serif;
+    font-family: var(--font-serif, "Times New Roman", serif);
 }
 
 .sidebar-links {
@@ -91,9 +100,19 @@
 
 .sidebar-links li {
     margin-bottom: 8px;
-    color: #111111;
-    font-size: 32px;
-    font-family: "Times New Roman", serif;
+    color: #374151;
+    font-size: 16px;
+    font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.sidebar-links a {
+    color: #374151;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.sidebar-links a:hover {
+    color: var(--color-accent, #2f5d3f);
 }
 
 .featured-list {
@@ -113,7 +132,7 @@
     width: 90px;
     height: 72px;
     object-fit: cover;
-    border-radius: 3px;
+    border-radius: var(--radius-md);
 }
 
 .featured-item span {
@@ -130,11 +149,12 @@
 }
 
 .post-article {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    margin-bottom: 26px;
+    margin-bottom: var(--space-8);
+    box-shadow: var(--shadow-soft);
 }
 
 .post-cover {

@@ -39,7 +39,7 @@ function cartAddItem(array $item, int $qty = 1): void
         'sku' => (string) $item['sku'],
         'price' => (int) $item['price'],
         'qty' => $qty,
-        'image' => (string) $item['image']
+        'image' => (string) $item['image'],
     ];
     cartSetItems($items);
 }
@@ -77,9 +77,75 @@ function cartClear(): void
 {
     $_SESSION['cart_items'] = [];
     $_SESSION['cart_coupon'] = '';
+    $_SESSION['cart_coupon_id'] = 0;
 }
 
-function cartCalculateTotals(array $items): array
+function cartSyncPricesFromDb(mysqli $conn): void
+{
+    $items = cartGetItems();
+    if (empty($items)) {
+        return;
+    }
+
+    $stmt = $conn->prepare("SELECT id, base_price, stock_status, name, sku
+                            FROM products
+                            WHERE id = ?
+                              AND is_active = 1
+                            LIMIT 1");
+    if (!$stmt) {
+        return;
+    }
+
+    $updated = [];
+    foreach ($items as $item) {
+        $productId = (int) ($item['product_id'] ?? 0);
+        if ($productId <= 0) {
+            $updated[] = $item;
+            continue;
+        }
+        $stmt->bind_param('i', $productId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        if (!$row) {
+            continue;
+        }
+        $item['price'] = (int) round((float) $row['base_price']);
+        $item['name'] = (string) $row['name'];
+        $item['sku'] = (string) $row['sku'];
+        $updated[] = $item;
+    }
+    $stmt->close();
+
+    cartSetItems($updated);
+}
+
+/**
+ * Kiểm tra giỏ trước khi đặt hàng (tồn tại, còn bán, chưa hết hàng).
+ *
+ * @return array{ok:bool,message:string}
+ */
+function cartValidateForCheckout(mysqli $conn, array $items): array
+{
+    if ($items === []) {
+        return ['ok' => false, 'message' => 'Giỏ hàng đang trống, chưa thể thanh toán.'];
+    }
+
+    require_once __DIR__ . '/inventory-repository.php';
+    return inventoryValidateCartItems($conn, $items);
+}
+
+function cartSetCoupon(?array $coupon): void
+{
+    if ($coupon === null) {
+        $_SESSION['cart_coupon'] = '';
+        $_SESSION['cart_coupon_id'] = 0;
+        return;
+    }
+    $_SESSION['cart_coupon'] = (string) $coupon['code'];
+    $_SESSION['cart_coupon_id'] = (int) $coupon['id'];
+}
+
+function cartCalculateTotals(array $items, ?mysqli $conn = null, ?int $customerId = null): array
 {
     $subtotal = 0;
     foreach ($items as $item) {
@@ -87,17 +153,25 @@ function cartCalculateTotals(array $items): array
     }
 
     $shipping = isset($_SESSION['selected_shipping_fee']) ? (int) $_SESSION['selected_shipping_fee'] : ($subtotal > 0 ? 30000 : 0);
-    $discount = 0;
-    $coupon = $_SESSION['cart_coupon'] ?? '';
+    $discount = 0.0;
+    $couponCode = trim((string) ($_SESSION['cart_coupon'] ?? ''));
 
-    if ($coupon === 'WINSUMXINCHAO') {
-        $discount = min(40000, $subtotal);
+    if ($couponCode !== '' && $conn instanceof mysqli) {
+        require_once __DIR__ . '/coupon-repository.php';
+        $validation = couponValidate($conn, $couponCode, (float) $subtotal, $customerId);
+        if ($validation['ok']) {
+            $discount = couponCalculateDiscount($validation['coupon'], (float) $subtotal, (float) $shipping);
+        } else {
+            cartSetCoupon(null);
+        }
     }
 
     return [
         'subtotal' => $subtotal,
         'shipping' => $shipping,
-        'discount' => $discount,
-        'total' => max(0, $subtotal + $shipping - $discount)
+        'discount' => (int) round($discount),
+        'total' => max(0, (int) round($subtotal + $shipping - $discount)),
+        'coupon_code' => $couponCode,
+        'coupon_id' => (int) ($_SESSION['cart_coupon_id'] ?? 0),
     ];
 }
