@@ -12,27 +12,31 @@ if ($currentCustomer && $orderCode !== '') {
 ?>
 
 <section class="container order-detail-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <a href="index.php?view=orders">Đơn hàng của tôi</a> / <span>Chi tiết đơn hàng</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <a href="<?php echo e(app_url('orders')); ?>">Đơn hàng của tôi</a> / <span>Chi tiết đơn hàng</span></p>
     <h1>Chi tiết đơn hàng</h1>
 
     <?php if (!$currentCustomer): ?>
         <div class="empty-state">
             <p>Bạn cần đăng nhập để xem chi tiết đơn hàng.</p>
-            <a class="btn-secondary" href="index.php?view=account">Đăng nhập ngay</a>
+            <?php
+            $loginParams = $orderCode !== '' ? ['code' => $orderCode] : [];
+            $loginReturnView = $orderCode !== '' ? 'order-detail' : 'orders';
+            ?>
+            <a class="btn-secondary" href="<?php echo e(auth_login_url($loginReturnView, $loginParams)); ?>">Đăng nhập ngay</a>
         </div>
     <?php elseif (!$order): ?>
         <div class="empty-state">
             <p>Không tìm thấy đơn hàng với mã bạn yêu cầu.</p>
-            <a class="btn-secondary" href="index.php?view=orders">Quay lại danh sách đơn</a>
+            <a class="btn-secondary" href="<?php echo e(app_url('orders')); ?>">Quay lại danh sách đơn</a>
         </div>
     <?php else: ?>
         <div class="order-detail-grid">
             <article class="order-card">
                 <h2>Thông tin đơn #<?php echo htmlspecialchars($order['order_code']); ?></h2>
                 <p><strong>Ngày đặt:</strong> <?php echo htmlspecialchars((string) $order['ordered_at']); ?></p>
-                <p><strong>Trạng thái:</strong> <?php echo htmlspecialchars($order['status']); ?></p>
-                <p><strong>Thanh toán:</strong> <?php echo htmlspecialchars((string) ($order['payment']['status'] ?? $order['payment_status'])); ?></p>
-                <p><strong>Vận chuyển:</strong> <?php echo htmlspecialchars($order['fulfillment_status']); ?></p>
+                <p><strong>Trạng thái:</strong> <?php echo htmlspecialchars(orderStatusLabel((string) $order['status'])); ?></p>
+                <p><strong>Thanh toán:</strong> <?php echo htmlspecialchars(orderPaymentStatusLabel((string) ($order['payment']['status'] ?? $order['payment_status']))); ?></p>
+                <p><strong>Vận chuyển:</strong> <?php echo htmlspecialchars(orderFulfillmentStatusLabel((string) $order['fulfillment_status'])); ?></p>
             </article>
 
             <article class="order-card">

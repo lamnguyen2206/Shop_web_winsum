@@ -1,14 +1,19 @@
 <?php
 require_once __DIR__ . '/cart-store.php';
 require_once __DIR__ . '/order-repository.php';
-require_once __DIR__ . '/customer-auth.php';
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/csrf.php';
 
 $checkoutBlockedAdmin = adminCurrent();
 $orderPlaced = false;
 $orderMessage = '';
 $orderCode = '';
+
+if (!empty($_SESSION['checkout_result']) && is_array($_SESSION['checkout_result'])) {
+    $checkoutResult = $_SESSION['checkout_result'];
+    unset($_SESSION['checkout_result']);
+    $orderPlaced = !empty($checkoutResult['placed']);
+    $orderMessage = (string) ($checkoutResult['message'] ?? '');
+    $orderCode = (string) ($checkoutResult['code'] ?? '');
+}
 
 $shippingMethods = orderGetShippingMethods($conn);
 $paymentMethods = orderGetPaymentMethods($conn);
@@ -45,92 +50,6 @@ $cartItems = cartGetItems();
 $totals = cartCalculateTotals($cartItems, $conn, $customerId);
 $cartIsEmpty = $cartItems === [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_submit'])) {
-    if ($checkoutBlockedAdmin) {
-        $orderMessage = 'Tài khoản quản trị không thể đặt hàng qua website.';
-    } elseif (!csrfValidate()) {
-        $orderMessage = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang và thử lại.';
-    } elseif ($cartIsEmpty) {
-        $orderMessage = 'Giỏ hàng đang trống, chưa thể thanh toán.';
-    } elseif (empty($shippingMethods) || empty($paymentMethods)) {
-        $orderMessage = 'Hệ thống chưa cấu hình phương thức vận chuyển hoặc thanh toán.';
-    } else {
-        $customerName = trim((string) ($_POST['customer_name'] ?? ''));
-        $customerPhone = trim((string) ($_POST['customer_phone'] ?? ''));
-        $customerEmail = trim((string) ($_POST['customer_email'] ?? ''));
-        $customerAddress = trim((string) ($_POST['customer_address'] ?? ''));
-        $customerNote = trim((string) ($_POST['customer_note'] ?? ''));
-        $shippingMethodId = (int) ($_POST['shipping_method_id'] ?? 0);
-        $paymentMethodId = (int) ($_POST['payment_method_id'] ?? 0);
-
-        $selectedShipping = orderFindShippingMethod($shippingMethods, $shippingMethodId);
-        $selectedPayment = orderFindPaymentMethod($paymentMethods, $paymentMethodId);
-
-        if ($selectedShipping) {
-            orderApplyShippingToSession($shippingMethods, $shippingMethodId);
-            $selectedShippingId = $shippingMethodId;
-        }
-        if ($selectedPayment) {
-            $_SESSION['checkout_payment_method_id'] = $paymentMethodId;
-            $selectedPaymentId = $paymentMethodId;
-        }
-
-        cartSyncPricesFromDb($conn);
-        $cartItems = cartGetItems();
-        $totals = cartCalculateTotals($cartItems, $conn, $customerId);
-        $cartIsEmpty = $cartItems === [];
-
-        if ($cartIsEmpty) {
-            $orderMessage = 'Giỏ hàng đang trống, chưa thể thanh toán.';
-        } elseif ($customerName === '' || $customerPhone === '' || $customerAddress === '') {
-            $orderMessage = 'Vui lòng điền đầy đủ thông tin nhận hàng.';
-        } elseif (!$selectedShipping) {
-            $orderMessage = 'Vui lòng chọn phương thức vận chuyển hợp lệ.';
-        } elseif (!$selectedPayment) {
-            $orderMessage = 'Vui lòng chọn phương thức thanh toán hợp lệ.';
-        } else {
-            $cartCheck = cartValidateForCheckout($conn, $cartItems);
-            if (!$cartCheck['ok']) {
-                $orderMessage = $cartCheck['message'];
-            } else {
-                try {
-                    $couponCode = $totals['coupon_code'] !== '' ? $totals['coupon_code'] : null;
-                    $couponId = $totals['coupon_id'] > 0 ? $totals['coupon_id'] : null;
-                    $orderCode = orderCreateFromCheckout(
-                        $conn,
-                        [
-                            'name' => $customerName,
-                            'phone' => $customerPhone,
-                            'email' => $customerEmail,
-                            'address' => $customerAddress,
-                            'note' => $customerNote,
-                        ],
-                        $cartItems,
-                        $totals,
-                        $couponCode,
-                        $customerId,
-                        $shippingMethodId,
-                        $paymentMethodId,
-                        $couponId
-                    );
-                    $orderPlaced = true;
-                    $orderMessage = 'Đặt hàng thành công. Mã đơn của bạn là ' . $orderCode . '.';
-                    cartClear();
-                    unset($_SESSION['checkout_shipping_method_id'], $_SESSION['checkout_payment_method_id']);
-                    if (!empty($shippingMethods)) {
-                        $_SESSION['selected_shipping_fee'] = (int) $shippingMethods[0]['fee'];
-                    }
-                    $cartItems = [];
-                    $totals = cartCalculateTotals($cartItems, $conn, $customerId);
-                    $cartIsEmpty = true;
-                } catch (Throwable $e) {
-                    $orderMessage = 'Không thể lưu đơn hàng vào hệ thống. Vui lòng thử lại.';
-                }
-            }
-        }
-    }
-}
-
 $checkoutCanSubmit = !$checkoutBlockedAdmin
     && !$cartIsEmpty
     && !$orderPlaced
@@ -139,7 +58,7 @@ $checkoutCanSubmit = !$checkoutBlockedAdmin
 ?>
 
 <section class="container checkout-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <a href="index.php?view=cart">Giỏ hàng</a> / <span>Thanh toán</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <a href="<?php echo e(app_url('cart')); ?>">Giỏ hàng</a> / <span>Thanh toán</span></p>
     <h1>Thông tin thanh toán</h1>
 
     <?php if ($checkoutBlockedAdmin): ?>
@@ -154,18 +73,20 @@ $checkoutCanSubmit = !$checkoutBlockedAdmin
         <div class="checkout-success-box">
             <p>Cảm ơn bạn! Đơn hàng đã được ghi nhận.</p>
             <?php if ($currentCustomer): ?>
-                <a class="btn-secondary" href="index.php?view=orders">Xem đơn hàng của tôi</a>
+                <a class="btn-secondary" href="<?php echo e(app_url('orders')); ?>">Xem đơn hàng của tôi</a>
+            <?php else: ?>
+                <a class="btn-secondary" href="<?php echo e(auth_login_url('orders')); ?>">Đăng nhập để xem đơn hàng</a>
             <?php endif; ?>
-            <a class="read-more" href="index.php?view=catalog">Tiếp tục mua sắm</a>
+            <a class="read-more" href="<?php echo e(app_url('catalog')); ?>">Tiếp tục mua sắm</a>
         </div>
     <?php elseif ($cartIsEmpty): ?>
         <div class="checkout-empty">
             <p>Giỏ hàng của bạn đang trống.</p>
-            <a class="btn-secondary" href="index.php?view=catalog">Tiếp tục mua sắm</a>
+            <a class="btn-secondary" href="<?php echo e(app_url('catalog')); ?>">Tiếp tục mua sắm</a>
         </div>
     <?php else: ?>
     <div class="checkout-layout">
-        <form method="post" action="index.php?view=checkout" class="checkout-form" data-checkout-form>
+        <form method="post" action="<?php echo e(app_url('checkout')); ?>" class="checkout-form" data-checkout-form>
             <?php echo csrfField(); ?>
             <label for="customer_name">Họ và tên</label>
             <input id="customer_name" type="text" name="customer_name" required value="<?php echo htmlspecialchars((string) ($currentCustomer['full_name'] ?? $_POST['customer_name'] ?? '')); ?>">

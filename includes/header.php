@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/cart-store.php';
 require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/helpers.php';
 
 $view = isset($_GET['view']) ? (string) $_GET['view'] : 'home';
 $cartCount = cartCountItems();
@@ -9,16 +10,16 @@ $isAdmin = adminCurrent();
     <div class="topbar">NỘI THẤT VÀ CHIẾU SÁNG CAO CẤP</div>
 
     <div class="navbar container">
-        <a class="brand" href="index.php?view=home">winsum home</a>
+        <a class="brand" href="<?php echo e(app_url('home')); ?>">winsum home</a>
 
         <nav class="main-nav">
             <ul>
-                <li><a class="<?php echo ($view === 'home') ? 'active' : ''; ?>" href="index.php?view=home">Trang chủ</a></li>
-                <li><a class="<?php echo ($view === 'catalog' || $view === 'product') ? 'active' : ''; ?>" href="index.php?view=catalog">Sản phẩm</a></li>
-                <li><a class="<?php echo ($view === 'blog' || $view === 'post') ? 'active' : ''; ?>" href="index.php?view=blog">Blog</a></li>
-                <li><a class="<?php echo ($view === 'orders') ? 'active' : ''; ?>" href="index.php?view=orders">Đơn hàng</a></li>
+                <li><a class="<?php echo ($view === 'home') ? 'active' : ''; ?>" href="<?php echo e(app_url('home')); ?>">Trang chủ</a></li>
+                <li><a class="<?php echo ($view === 'catalog' || $view === 'product') ? 'active' : ''; ?>" href="<?php echo e(app_url('catalog')); ?>">Sản phẩm</a></li>
+                <li><a class="<?php echo ($view === 'blog' || $view === 'post') ? 'active' : ''; ?>" href="<?php echo e(app_url('blog')); ?>">Blog</a></li>
+                <li><a class="<?php echo ($view === 'orders' || $view === 'order-detail') ? 'active' : ''; ?>" href="<?php echo e(app_url('orders')); ?>">Đơn hàng</a></li>
                 <?php if (empty($currentCustomer) && !$isAdmin): ?>
-                    <li><a class="<?php echo ($view === 'account') ? 'active' : ''; ?>" href="index.php?view=account">Tài khoản</a></li>
+                    <li><a class="<?php echo ($view === 'account') ? 'active' : ''; ?>" href="<?php echo e(auth_login_url('account')); ?>">Tài khoản</a></li>
                 <?php endif; ?>
             </ul>
         </nav>
@@ -39,16 +40,16 @@ $isAdmin = adminCurrent();
                 <div class="nav-account-dropdown" id="nav-account-menu" role="menu" hidden>
                     <?php if ($isAdmin): ?>
                         <p class="nav-account-dropdown-head">Tài khoản quản trị</p>
-                        <a role="menuitem" href="index.php?view=admin-dashboard">Trang quản trị</a>
-                        <a role="menuitem" href="index.php?view=orders">Đơn hàng của tôi</a>
+                        <a role="menuitem" href="<?php echo e(app_url('admin-dashboard')); ?>">Trang quản trị</a>
+                        <a role="menuitem" href="<?php echo e(app_url('orders')); ?>">Đơn của tôi</a>
                         <form method="post" action="" class="nav-account-logout">
                             <?php echo csrfField(); ?>
                             <input type="hidden" name="auth_action" value="logout">
                             <button type="submit" class="nav-account-btn">Đăng xuất</button>
                         </form>
                     <?php elseif (!empty($currentCustomer)): ?>
-                        <a role="menuitem" href="index.php?view=account#profile-edit">Sửa thông tin</a>
-                        <a role="menuitem" href="index.php?view=orders">Đơn hàng của tôi</a>
+                        <a role="menuitem" href="<?php echo e(app_url('account')); ?>#profile-edit">Sửa thông tin</a>
+                        <a role="menuitem" href="<?php echo e(app_url('orders')); ?>">Đơn hàng của tôi</a>
                         <form method="post" action="" class="nav-account-logout">
                             <?php echo csrfField(); ?>
                             <input type="hidden" name="auth_action" value="logout">
@@ -60,7 +61,7 @@ $isAdmin = adminCurrent();
                     <?php endif; ?>
                 </div>
             </div>
-            <a class="icon-link" title="Giỏ hàng" href="index.php?view=cart" aria-label="Giỏ hàng">
+            <a class="icon-link" title="Giỏ hàng" href="<?php echo e(app_url('cart')); ?>" aria-label="Giỏ hàng">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M3 4h2l2.2 10.5a1 1 0 0 0 1 .8H19a1 1 0 0 0 1-.8L22 7H7"></path></svg>
                 <?php echo $cartCount > 0 ? '<em class="cart-badge">' . $cartCount . '</em>' : ''; ?>
             </a>

@@ -1,48 +1,12 @@
 <?php
-require_once __DIR__ . '/customer-auth.php';
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/csrf.php';
-
-$accountMessage = '';
-$accountSuccess = false;
-$currentCustomer = customerCurrent($conn);
-$isAdmin = adminCurrent();
-
-if ($isAdmin && !$currentCustomer) {
-    header('Location: index.php?view=home');
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $currentCustomer) {
-    if (!csrfValidate()) {
-        $accountMessage = 'Phiên làm việc không hợp lệ.';
-    } else {
-        $action = (string) ($_POST['action'] ?? '');
-        if ($action === 'logout') {
-            customerLogout();
-            header('Location: index.php?view=home');
-            exit;
-        }
-        if ($action === 'update_profile') {
-            $result = customerUpdateProfile(
-                $conn,
-                (int) $currentCustomer['id'],
-                (string) ($_POST['full_name'] ?? ''),
-                (string) ($_POST['phone'] ?? ''),
-                (string) ($_POST['email'] ?? ''),
-                (string) ($_POST['new_password'] ?? '')
-            );
-            $accountMessage = $result['message'];
-            $accountSuccess = $result['ok'];
-        }
-    }
-}
-
+$accountFlash = pageFlashConsume('account');
+$accountMessage = $accountFlash['message'];
+$accountSuccess = $accountFlash['success'];
 $currentCustomer = customerCurrent($conn);
 ?>
 
 <section class="container account-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Tài khoản</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Tài khoản</span></p>
     <h1>Tài khoản khách hàng</h1>
 
     <?php if ($accountMessage !== ''): ?>
@@ -62,7 +26,7 @@ $currentCustomer = customerCurrent($conn);
                 </div>
             </div>
 
-            <form method="post" action="index.php?view=account#profile-edit" class="account-form" id="profile-edit">
+            <form method="post" action="<?php echo e(app_url('account')); ?>#profile-edit" class="account-form" id="profile-edit">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="update_profile">
                 <h2>Sửa thông tin</h2>
@@ -86,7 +50,11 @@ $currentCustomer = customerCurrent($conn);
     <?php else: ?>
         <div class="empty-state account-guest">
             <p>Bạn chưa đăng nhập.</p>
-            <p class="account-form-hint">Dùng biểu tượng tài khoản ở góc phải để đăng nhập hoặc đăng ký.</p>
+            <p class="account-form-hint">Đăng nhập để xem và sửa thông tin tài khoản, theo dõi đơn hàng.</p>
+            <div class="account-actions">
+                <a class="btn-secondary" href="<?php echo e(auth_login_url('account')); ?>">Đăng nhập</a>
+                <a class="btn-secondary" href="<?php echo e(auth_register_url('account')); ?>">Đăng ký</a>
+            </div>
         </div>
     <?php endif; ?>
 </section>

@@ -1,50 +1,11 @@
 <?php
 require_once __DIR__ . '/product-repository.php';
-require_once __DIR__ . '/cart-store.php';
-require_once __DIR__ . '/inventory-repository.php';
 require_once __DIR__ . '/customer-auth.php';
-require_once __DIR__ . '/csrf.php';
 
-$catalogNotice = '';
+$catalogFlash = pageFlashConsume('catalog');
+$catalogNotice = $catalogFlash['message'];
 $catalogCustomer = customerCurrent($conn);
 $catalogAdminNoShop = !customerMayShopOnStorefront($catalogCustomer);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_to_cart') {
-    if (!csrfValidate()) {
-        $catalogNotice = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.';
-    } else {
-    $productId = (int) ($_POST['product_id'] ?? 0);
-    $qty = max(1, (int) ($_POST['qty'] ?? 1));
-    $product = productGetById($conn, $productId);
-    if ($catalogAdminNoShop) {
-        $catalogNotice = 'Tài khoản quản trị không thể thêm sản phẩm vào giỏ hàng.';
-    } elseif ($product) {
-        $cartQty = 0;
-        foreach (cartGetItems() as $cartLine) {
-            if ((int) ($cartLine['product_id'] ?? 0) === (int) $product['id']) {
-                $cartQty += (int) ($cartLine['qty'] ?? 0);
-            }
-        }
-        $stockCheck = inventoryValidatePurchase($conn, (int) $product['id'], $product['stock_status'], $cartQty + $qty);
-        if ($stockCheck['ok']) {
-            cartAddItem([
-                'id' => 'product-' . $product['id'],
-                'product_id' => $product['id'],
-                'slug' => $product['slug'],
-                'name' => $product['name'],
-                'sku' => $product['sku'],
-                'price' => $product['price'],
-                'image' => $product['image']
-            ], $qty);
-            $catalogNotice = 'Đã thêm sản phẩm vào giỏ hàng.';
-        } else {
-            $catalogNotice = $stockCheck['message'];
-        }
-    } else {
-        $catalogNotice = 'Sản phẩm hiện không khả dụng.';
-    }
-    }
-}
 
 $filters = productBuildFiltersFromRequest();
 $categories = productGetFilterCategories($conn);
@@ -107,7 +68,7 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
 ?>
 
 <section class="container catalog-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Sản phẩm</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Sản phẩm</span></p>
     <div class="catalog-head">
         <h1>Tất cả sản phẩm</h1>
         <p>Khám phá bộ sưu tập nội thất và chiếu sáng cao cấp từ Winsum Home.</p>
@@ -223,7 +184,7 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
                     <?php endif; ?>
                 </p>
                 <?php if (!empty($activeFilters)): ?>
-                    <a class="clear-all-filters" href="index.php?view=catalog">Xóa tất cả bộ lọc</a>
+                    <a class="clear-all-filters" href="<?php echo e(app_url('catalog')); ?>">Xóa tất cả bộ lọc</a>
                 <?php endif; ?>
             </div>
             <?php if (empty($products)): ?>

@@ -1,10 +1,5 @@
 <?php
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/order-repository.php';
-require_once __DIR__ . '/csrf.php';
-
-adminRequire();
 
 $adminMessage = '';
 $orders = orderGetAllOrders($conn, 100);
@@ -31,7 +26,7 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
 ?>
 
 <section class="container orders-page admin-page admin-orders-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Quản trị đơn hàng</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Quản trị đơn hàng</span></p>
     <div class="admin-page-head">
         <h1>Quản lý đơn hàng</h1>
         <form method="post" action="index.php?view=admin-orders" class="admin-inline-form">
@@ -68,22 +63,22 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
                     <span>#<?php echo htmlspecialchars($order['order_code']); ?></span>
                     <span><?php echo htmlspecialchars($order['customer_name']); ?></span>
                     <span><?php echo htmlspecialchars($order['customer_phone']); ?></span>
-                    <span><?php echo htmlspecialchars($order['status']); ?></span>
+                    <span class="order-status-text"><?php echo htmlspecialchars(orderStatusLabel((string) $order['status'])); ?></span>
                     <span><?php echo number_format((float) $order['grand_total'], 0, ',', '.'); ?>đ</span>
                     <span><?php echo htmlspecialchars((string) $order['ordered_at']); ?></span>
                     <span>
-                        <form method="post" action="index.php?view=admin-orders" class="admin-status-form">
+                        <form method="post" action="index.php?view=admin-orders" class="admin-status-form admin-order-status-form">
                             <?php echo csrfField(); ?>
                             <input type="hidden" name="action" value="update_status">
                             <input type="hidden" name="order_id" value="<?php echo (int) $order['id']; ?>">
-                            <select name="status">
+                            <select name="status" class="admin-order-status-select" aria-label="Trạng thái đơn hàng">
                                 <?php foreach ($statusOptions as $status): ?>
                                     <option value="<?php echo htmlspecialchars($status); ?>" <?php echo $order['status'] === $status ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($status); ?>
+                                        <?php echo htmlspecialchars(orderStatusLabel($status)); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <button type="submit">Lưu</button>
+                            <button type="submit" class="admin-btn-save">Lưu</button>
                         </form>
                     </span>
                 </div>

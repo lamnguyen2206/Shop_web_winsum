@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/helpers.php'; ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -33,9 +34,8 @@
             <!-- COPYRIGHT -->
             <div class="footer-copy">
                 © Bản quyền thuộc về 
-                <a href="#">Winsum</a> | 
-                Cung cấp bởi 
-                <a href="#">Winsum</a>
+                <a href="<?php echo e(app_url('home')); ?>">Winsum Home</a> |
+                <a href="<?php echo e(app_url('catalog')); ?>">Sản phẩm</a>
             </div>
         </div>
     </footer>

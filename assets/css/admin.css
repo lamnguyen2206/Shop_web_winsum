@@ -52,6 +52,18 @@
     color: #1e40af;
 }
 
+.admin-notice--ok {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #065f46;
+}
+
+.admin-notice--err {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
 .admin-split {
     display: grid;
     grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
@@ -305,7 +317,95 @@
 
 .admin-orders-page .orders-head,
 .admin-orders-page .orders-row {
-    min-width: 720px;
+    min-width: 760px;
+    grid-template-columns:
+        minmax(0, 1.4fr)
+        minmax(0, 1fr)
+        minmax(0, 0.85fr)
+        minmax(0, 0.75fr)
+        minmax(0, 0.8fr)
+        minmax(0, 0.95fr)
+        minmax(0, 1.35fr);
+    gap: 10px 12px;
+    align-items: start;
+}
+
+.admin-orders-page .orders-head > span,
+.admin-orders-page .orders-row > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-orders-page .orders-row > span:first-child,
+.admin-orders-page .orders-head > span:first-child {
+    word-break: break-all;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.admin-orders-page .order-status-text {
+    font-weight: 600;
+    color: #374151;
+}
+
+.admin-orders-page .admin-order-status-form {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.admin-orders-page .admin-order-status-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #111827;
+}
+
+.admin-orders-page .admin-btn-save {
+    flex: 0 0 auto;
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    background: #1f2937;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease;
+}
+
+.admin-orders-page .admin-btn-save:hover {
+    background: #111827;
+}
+
+.admin-orders-page .admin-btn-save:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.admin-orders-page .orders-row > span:last-child {
+    min-width: 0;
+}
+
+.admin-dashboard-recent-orders .admin-table th:first-child,
+.admin-dashboard-recent-orders .admin-table td:first-child {
+    max-width: 200px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 .blog-editor-page .blog-editor-form {
@@ -800,6 +900,48 @@
     margin: 0 0 18px;
     color: #4b5563;
     line-height: 1.5;
+}
+
+.admin-modal-note {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #374151;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+}
+
+.admin-customer-danger-zone {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #fecaca;
+}
+
+.admin-customer-danger-zone .admin-hint {
+    margin-bottom: 10px;
+    color: #991b1b;
+}
+
+.btn-danger-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b91c1c;
+    background: #fff;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+    background: #fef2f2;
+    border-color: #f87171;
 }
 
 .admin-modal-actions {

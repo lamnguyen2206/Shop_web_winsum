@@ -1,5 +1,5 @@
 /**
- * Handlers quản lý khách hàng (admin) — gắn API / logic bổ sung tại đây.
+ * Handlers quản lý khách hàng (admin).
  */
 (function () {
     'use strict';
@@ -44,19 +44,34 @@
             submitPost('toggle_customer_block', customerId);
         },
 
-        onDelete(customerId) {
+        onDelete(customerId, ev) {
             const modal = getModal();
             const idInput = document.getElementById('customer-delete-id');
+            const idBackup = document.getElementById('customer-delete-id-backup');
             const nameEl = document.getElementById('customer-delete-name');
-            if (!modal || !idInput) {
+            const btn = ev && ev.currentTarget ? ev.currentTarget : null;
+            const resolvedId = String(
+                btn && btn.dataset && btn.dataset.deleteId ? btn.dataset.deleteId : customerId
+            );
+            if (!modal || !idInput || !resolvedId || resolvedId === '0') {
                 return;
             }
-            idInput.value = String(customerId);
+            idInput.value = resolvedId;
+            if (idBackup) {
+                idBackup.value = resolvedId;
+            }
             if (nameEl) {
                 const row = document.querySelector(
                     '[data-customer-id="' + customerId + '"] [data-customer-name]'
                 );
-                nameEl.textContent = row ? row.textContent.trim() : 'khách hàng này';
+                const detailName = document.querySelector('[data-customer-detail-name]');
+                if (row) {
+                    nameEl.textContent = row.textContent.trim();
+                } else if (detailName) {
+                    nameEl.textContent = detailName.textContent.trim();
+                } else {
+                    nameEl.textContent = 'khách hàng này';
+                }
             }
             modal.hidden = false;
             document.body.classList.add('admin-modal-open');
@@ -68,14 +83,6 @@
                 modal.hidden = true;
             }
             document.body.classList.remove('admin-modal-open');
-        },
-
-        confirmDelete() {
-            const idInput = document.getElementById('customer-delete-id');
-            if (!idInput || !idInput.value) {
-                return;
-            }
-            submitPost('delete_customer', idInput.value);
         },
     };
 
@@ -102,6 +109,21 @@
                 window.AdminCustomers.closeDeleteModal();
             }
         });
+
+        const deleteForm = document.getElementById('customer-delete-form');
+        if (deleteForm) {
+            deleteForm.addEventListener('submit', function (e) {
+                const idInput = document.getElementById('customer-delete-id');
+                const idBackup = document.getElementById('customer-delete-id-backup');
+                const id = (idInput && idInput.value) || (idBackup && idBackup.value) || '';
+                if (!id || id === '0') {
+                    e.preventDefault();
+                    window.alert('Không xác định được khách hàng. Vui lòng bấm biểu tượng thùng rác trên dòng khách hàng trước.');
+                } else if (idInput) {
+                    idInput.value = id;
+                }
+            });
+        }
 
         if (window.location.hash === '#customer-edit') {
             const crud = document.getElementById('customer-edit');

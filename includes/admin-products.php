@@ -1,12 +1,7 @@
 <?php
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/product-admin-repository.php';
 require_once __DIR__ . '/product-repository.php';
-require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/inventory-repository.php';
-
-adminRequire();
 
 $adminMessage = '';
 $editId = (int) ($_GET['edit'] ?? 0);
@@ -16,14 +11,6 @@ $categories = productGetFilterCategories($conn);
 $topSellers = productGetBestSellers($conn, 6);
 $featuredFromSalesLimit = 6;
 $inventoryAlerts = inventoryGetUnreadAlerts($conn, 10);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate()) {
-    $action = (string) ($_POST['action'] ?? '');
-    if ($action === 'save_product') {
-        $result = productAdminSave($conn, $_POST);
-        $adminMessage = $result['message'];
-    }
-}
 
 if (isset($_GET['msg'])) {
     $adminMessage = (string) $_GET['msg'];
@@ -51,7 +38,7 @@ $form = $editing ?: [
 ?>
 
 <section class="container admin-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Quản trị sản phẩm</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Quản trị sản phẩm</span></p>
 
     <div class="admin-page-head">
         <h1>Quản lý sản phẩm</h1>

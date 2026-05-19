@@ -1,10 +1,5 @@
 <?php
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/review-repository.php';
-require_once __DIR__ . '/csrf.php';
-
-adminRequire();
 
 $adminMessage = '';
 $statusFilter = isset($_GET['status']) ? trim((string) $_GET['status']) : 'pending';
@@ -36,7 +31,7 @@ $reviews = reviewAdminGetAll($conn, $statusFilter !== '' ? $statusFilter : null)
 ?>
 
 <section class="container admin-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Quản trị đánh giá</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Quản trị đánh giá</span></p>
 
     <div class="admin-page-head">
         <h1>Quản lý đánh giá sản phẩm</h1>

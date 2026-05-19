@@ -75,7 +75,8 @@ function orderApplyShippingToSession(array $shippingMethods, int $shippingMethod
 
 function orderGenerateCode(): string
 {
-    return 'WS' . date('YmdHis') . random_int(100, 999);
+    // 10 ký tự: WS + tháng/ngày (4) + 4 số ngẫu nhiên — VD: WS05192384
+    return 'WS' . date('md') . sprintf('%04d', random_int(0, 9999));
 }
 
 function orderCreateFromCheckout(
@@ -368,4 +369,43 @@ function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string
         $conn->rollback();
         return false;
     }
+}
+
+function orderStatusLabel(string $status): string
+{
+    return match ($status) {
+        'pending' => 'Chờ xử lý',
+        'processing' => 'Đang xử lý',
+        'packed' => 'Đã đóng gói',
+        'shipped' => 'Đang giao hàng',
+        'delivered' => 'Đã giao hàng',
+        'cancelled' => 'Đã hủy',
+        'returned' => 'Đã hoàn trả',
+        default => $status,
+    };
+}
+
+function orderPaymentStatusLabel(string $status): string
+{
+    return match ($status) {
+        'unpaid' => 'Chưa thanh toán',
+        'paid' => 'Đã thanh toán',
+        'failed' => 'Thanh toán thất bại',
+        'refunded' => 'Đã hoàn tiền',
+        default => $status,
+    };
+}
+
+function orderFulfillmentStatusLabel(string $status): string
+{
+    return match ($status) {
+        'pending' => 'Chờ giao hàng',
+        'processing' => 'Đang chuẩn bị',
+        'packed' => 'Đã đóng gói',
+        'shipped' => 'Đang vận chuyển',
+        'delivered' => 'Đã giao hàng',
+        'cancelled' => 'Đã hủy',
+        'returned' => 'Đã hoàn trả',
+        default => $status,
+    };
 }

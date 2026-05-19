@@ -1,64 +1,14 @@
 <?php
 require_once __DIR__ . '/product-repository.php';
-require_once __DIR__ . '/cart-store.php';
-require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/review-repository.php';
-require_once __DIR__ . '/customer-auth.php';
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/inventory-repository.php';
 
 $slug = trim((string) ($_GET['slug'] ?? ''));
 $product = productGetBySlug($conn, $slug);
-$detailNotice = '';
+$productFlash = pageFlashConsume('product');
+$detailNotice = $productFlash['message'];
 $reviewNotice = '';
 $currentCustomer = customerCurrent($conn);
 $productAdminView = adminCurrent();
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
-    $action = (string) ($_POST['action'] ?? '');
-    if (!csrfValidate()) {
-        $detailNotice = 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.';
-    } elseif ($action === 'add_to_cart') {
-        if ($productAdminView) {
-            $detailNotice = 'Tài khoản quản trị không thể mua qua website.';
-        } else {
-        $qty = max(1, (int) ($_POST['qty'] ?? 1));
-        $cartQty = 0;
-        foreach (cartGetItems() as $cartLine) {
-            if ((int) ($cartLine['product_id'] ?? 0) === (int) $product['id']) {
-                $cartQty += (int) ($cartLine['qty'] ?? 0);
-            }
-        }
-        $stockCheck = inventoryValidatePurchase($conn, (int) $product['id'], $product['stock_status'], $cartQty + $qty);
-        if (!$stockCheck['ok']) {
-            $detailNotice = $stockCheck['message'];
-        } else {
-            cartAddItem([
-                'id' => 'product-' . $product['id'],
-                'product_id' => $product['id'],
-                'slug' => $product['slug'],
-                'name' => $product['name'],
-                'sku' => $product['sku'],
-                'price' => (int) round($product['base_price']),
-                'image' => $product['images'][0]['url'] ?? 'assets/images/blog_1.png',
-            ], $qty);
-            $detailNotice = 'Đã thêm sản phẩm vào giỏ hàng.';
-        }
-        }
-    } elseif ($action === 'submit_review') {
-        $result = reviewCreate(
-            $conn,
-            (int) $product['id'],
-            (string) ($_POST['reviewer_name'] ?? ($currentCustomer['full_name'] ?? '')),
-            (string) ($_POST['reviewer_email'] ?? ($currentCustomer['email'] ?? '')),
-            (int) ($_POST['rating'] ?? 5),
-            (string) ($_POST['review_title'] ?? ''),
-            (string) ($_POST['review_content'] ?? ''),
-            $currentCustomer ? (int) $currentCustomer['id'] : null
-        );
-        $reviewNotice = $result['message'];
-    }
-}
 
 if (!$product) {
     http_response_code(404);
@@ -66,7 +16,7 @@ if (!$product) {
     <section class="container product-page product-page--empty">
         <h1>Không tìm thấy sản phẩm</h1>
         <p>Sản phẩm có thể đã được cập nhật hoặc không còn hiển thị.</p>
-        <a href="index.php?view=catalog" class="btn-secondary">Quay lại danh mục</a>
+        <a href="<?php echo e(app_url('catalog')); ?>" class="btn-secondary">Quay lại danh mục</a>
     </section>
     <?php
     return;
@@ -90,8 +40,8 @@ $inventoryQty = inventoryGetAvailableQty($conn, (int) $product['id']);
 
 <section class="container product-page" data-product-detail>
     <p class="breadcrumb">
-        <a href="index.php?view=home">Trang chủ</a> /
-        <a href="index.php?view=catalog&amp;category=<?php echo urlencode($product['category_slug']); ?>"><?php echo htmlspecialchars($product['category_name']); ?></a> /
+        <a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> /
+        <a href="<?php echo e(app_url('catalog', ['category' => $product['category_slug']])); ?>"><?php echo htmlspecialchars($product['category_name']); ?></a> /
         <span><?php echo htmlspecialchars($product['name']); ?></span>
     </p>
 
@@ -102,8 +52,8 @@ $inventoryQty = inventoryGetAvailableQty($conn, (int) $product['id']);
     <?php if ($productAdminView): ?>
         <div class="product-admin-bar">
             <p>Bạn đang xem với tài khoản quản trị.</p>
-            <a class="btn-secondary" href="index.php?view=admin-products&amp;edit=<?php echo (int) $product['id']; ?>">Chỉnh sửa sản phẩm</a>
-            <a href="index.php?view=admin-products">Quản lý sản phẩm</a>
+            <a class="btn-secondary" href="<?php echo e(app_url('admin-products', ['edit' => (int) $product['id']])); ?>">Chỉnh sửa sản phẩm</a>
+            <a href="<?php echo e(app_url('admin-products')); ?>">Quản lý sản phẩm</a>
         </div>
     <?php endif; ?>
 
@@ -177,7 +127,7 @@ $inventoryQty = inventoryGetAvailableQty($conn, (int) $product['id']);
                 <button type="submit" class="btn-add-cart" <?php echo $product['stock_status'] === 'out_of_stock' ? 'disabled' : ''; ?>>
                     <?php echo $product['stock_status'] === 'out_of_stock' ? 'Hết hàng' : 'Thêm vào giỏ hàng'; ?>
                 </button>
-                <a class="btn-secondary btn-full" href="index.php?view=cart">Xem giỏ hàng</a>
+                <a class="btn-secondary btn-full" href="<?php echo e(app_url('cart')); ?>">Xem giỏ hàng</a>
             </form>
             <?php else: ?>
                 <p class="product-admin-note">Tài khoản quản trị không mua qua website. Dùng nút trên để chỉnh sửa thông tin sản phẩm.</p>

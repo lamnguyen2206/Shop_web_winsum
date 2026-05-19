@@ -1,19 +1,15 @@
 <?php
-require_once __DIR__ . '/admin-auth.php';
-require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/admin-stats.php';
-require_once __DIR__ . '/csrf.php';
-
-adminRequire();
+require_once __DIR__ . '/inventory-repository.php';
+require_once __DIR__ . '/order-repository.php';
 
 $stats = adminGetDashboardStats($conn);
 $recentOrders = adminGetRecentOrders($conn, 6);
-require_once __DIR__ . '/inventory-repository.php';
 $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
 ?>
 
 <section class="container admin-page admin-dashboard-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Bảng điều khiển</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Bảng điều khiển</span></p>
 
     <div class="admin-page-head">
         <h1>Bảng quản trị Winsum Home</h1>
@@ -80,7 +76,7 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
         <div class="admin-panel admin-dashboard-panel--full admin-dashboard-recent-orders">
             <div class="admin-dashboard-panel-head">
                 <h2>Đơn hàng mới nhất</h2>
-                <a class="admin-dashboard-panel-link" href="index.php?view=admin-orders">Xem tất cả đơn hàng →</a>
+                <a class="admin-dashboard-panel-link" href="<?php echo e(app_url('admin-orders')); ?>">Xem tất cả đơn hàng →</a>
             </div>
             <?php if (empty($recentOrders)): ?>
                 <p class="empty-state">Chưa có đơn hàng.</p>
@@ -102,7 +98,7 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
                                     <td><?php echo htmlspecialchars($order['order_code']); ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
                                     <td><?php echo number_format((float) $order['grand_total'], 0, ',', '.'); ?>đ</td>
-                                    <td><?php echo htmlspecialchars($order['status']); ?></td>
+                                    <td><?php echo htmlspecialchars(orderStatusLabel((string) $order['status'])); ?></td>
                                     <td><?php echo htmlspecialchars((string) $order['ordered_at']); ?></td>
                                 </tr>
                             <?php endforeach; ?>

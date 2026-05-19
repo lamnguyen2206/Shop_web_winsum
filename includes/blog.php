@@ -12,10 +12,10 @@ if (empty($featuredPosts)) {
 
 <section class="blog-page container">
     <div class="blog-hero">
-        <p class="breadcrumb"><a href="index.php">Trang chủ</a> / <span>Tin tức</span></p>
+        <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Tin tức</span></p>
         <h1 class="blog-title">Tin tức</h1>
         <?php if ($isAdmin): ?>
-            <a href="index.php?view=blog-editor" class="btn-secondary blog-editor-link">Soạn bài mới</a>
+            <a href="<?php echo e(app_url('blog-editor')); ?>" class="btn-secondary blog-editor-link">Soạn bài mới</a>
         <?php endif; ?>
     </div>
 
@@ -40,10 +40,10 @@ if (empty($featuredPosts)) {
             <div class="sidebar-block">
                 <h3>DANH MỤC TIN TỨC</h3>
                 <ul class="sidebar-links">
-                    <li><a href="index.php">Trang chủ</a></li>
-                    <li><a href="#">Tất cả sản phẩm</a></li>
-                    <li><a href="#">Danh mục</a></li>
-                    <li><a href="index.php?view=blog">Blog</a></li>
+                    <li><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a></li>
+                    <li><a href="<?php echo e(app_url('catalog')); ?>">Tất cả sản phẩm</a></li>
+                    <li><a href="<?php echo e(app_url('catalog')); ?>">Danh mục</a></li>
+                    <li><a href="<?php echo e(app_url('blog')); ?>">Blog</a></li>
                 </ul>
             </div>
 

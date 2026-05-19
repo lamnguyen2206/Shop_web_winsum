@@ -44,9 +44,13 @@ mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
 - Đăng ký / đăng nhập, xem đơn hàng
 - Blog tin tức
 
-### Đăng nhập / đăng ký (trang chủ)
-- Hai form tách riêng ngay dưới banner: **Đăng nhập** | **Đăng kí tài khoản** (theme tối như mẫu)
-- Đăng nhập bằng SĐT, email hoặc tên đăng nhập · Mật khẩu tối thiểu 6 ký tự
+### Đăng nhập / đăng ký
+- Không có `login.php` riêng — dùng popup trên header (`data-open-auth`) hoặc tham số URL:
+  - `index.php?view=orders&auth=login` — mở form đăng nhập trên trang đơn hàng
+  - `index.php?view=account&auth=login` — trang tài khoản
+  - `index.php?view=order-detail&code=...&auth=login` — chi tiết đơn (sau khi đăng nhập)
+- Helper PHP: `auth_login_url($view, $params)`, `auth_register_url($view, $params)` trong `includes/helpers.php`
+- Toast khi đăng nhập thành công; SĐT, email hoặc tên · mật khẩu tối thiểu 6 ký tự
 
 ### Quản trị (sau khi đăng nhập admin)
 - **Tổng quan** — `?view=admin-dashboard` (thống kê, đơn mới, liên kết nhanh)
@@ -70,7 +74,7 @@ mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
 | `account` / `orders` | Tài khoản / Đơn hàng |
 | `blog` / `post` | Tin tức |
 | `admin-dashboard` | Bảng điều khiển |
-| `admin-orders` | Quản lý đơn |
+| `admin-orders` | Quản lý đơn (tất cả đơn) |
 | `admin-customers` | Quản lý khách hàng |
 | `admin-products` | CRUD sản phẩm |
 | `admin-reviews` | Duyệt đánh giá |
@@ -79,18 +83,22 @@ mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
 ## Cấu trúc thư mục
 
 ```
+bootstrap/app.php       Khởi động: session, DB, xử lý POST, auth
+index.php               Front controller (layout + view)
 config/                 Cấu hình database
 database/schema/        Script SQL
-includes/               PHP (repository, views)
-  product-detail.php    Trang chi tiết SP
-  admin-products.php    CRUD sản phẩm
-  admin-reviews.php     Quản lý đánh giá
-assets/css/
-  product-detail.css    Giao diện chi tiết SP
-  admin.css             Giao diện quản trị
-assets/js/product-detail.js  Gallery & tabs
-index.php               Front controller
+includes/
+  routes.php            Whitelist view & assets
+  helpers.php           e(), redirect(), app_url()
+  flash.php             Thông báo PRG theo trang
+  *-post.php            Xử lý form trước khi in HTML
+  *-repository.php      Truy vấn MySQL
+  layout/               head.php, foot.php
+  errors/404.php
+assets/css|js/
 ```
+
+**Luồng request:** `index.php` → `bootstrap/app.php` (POST handlers) → layout → `includes/{view}.php`
 
 ## Demo chi tiết sản phẩm
 

@@ -260,6 +260,68 @@ function customerAdminToggleBlock(mysqli $conn, int $customerId, int $actingCust
     return customerAdminUpdateStatus($conn, $customerId, $newStatus, $actingCustomerId);
 }
 
+/**
+ * Gỡ liên kết đơn hàng — chỉ bỏ customer_id, KHÔNG xóa bản ghi orders / order_items.
+ *
+ * @return int Số đơn được giữ lại (đã tách khỏi tài khoản)
+ */
+function customerAdminRunCustomerIdStmt(mysqli $conn, string $sql, int $customerId, bool $required = true): int
+{
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        if ($required) {
+            throw new RuntimeException($conn->error ?: 'Lỗi truy vấn cơ sở dữ liệu.');
+        }
+        return 0;
+    }
+    $stmt->bind_param('i', $customerId);
+    if (!$stmt->execute()) {
+        $err = $stmt->error ?: $conn->error ?: 'Lỗi thực thi truy vấn.';
+        $stmt->close();
+        if ($required) {
+            throw new RuntimeException($err);
+        }
+        return 0;
+    }
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+
+    return max(0, $affected);
+}
+
+function customerAdminUnlinkOrders(mysqli $conn, int $customerId): int
+{
+    return customerAdminRunCustomerIdStmt(
+        $conn,
+        'UPDATE orders SET customer_id = NULL, updated_at = NOW() WHERE customer_id = ?',
+        $customerId
+    );
+}
+
+/**
+ * Gỡ liên kết trước khi xóa tài khoản (không xóa đơn hàng).
+ *
+ * @return int Số đơn hàng được giữ (đã gỡ customer_id)
+ */
+function customerAdminDetachRelations(mysqli $conn, int $customerId): int
+{
+    $ordersKept = customerAdminUnlinkOrders($conn, $customerId);
+
+    $statements = [
+        'UPDATE carts SET customer_id = NULL WHERE customer_id = ?',
+        'UPDATE coupon_redemptions SET customer_id = NULL WHERE customer_id = ?',
+        'UPDATE product_reviews SET customer_id = NULL WHERE customer_id = ?',
+        'DELETE FROM wishlists WHERE customer_id = ?',
+        'DELETE FROM customer_addresses WHERE customer_id = ?',
+    ];
+
+    foreach ($statements as $sql) {
+        customerAdminRunCustomerIdStmt($conn, $sql, $customerId, false);
+    }
+
+    return $ordersKept;
+}
+
 function customerAdminDelete(mysqli $conn, int $customerId, int $actingCustomerId = 0): array
 {
     $customer = customerAdminGetById($conn, $customerId);
@@ -267,20 +329,45 @@ function customerAdminDelete(mysqli $conn, int $customerId, int $actingCustomerI
         return ['ok' => false, 'message' => 'Không tìm thấy khách hàng.'];
     }
     if (!customerAdminCanManageRow($customer, $actingCustomerId)) {
-        return ['ok' => false, 'message' => 'Không thể xóa tài khoản này.'];
+        return ['ok' => false, 'message' => 'Không thể xóa tài khoản quản trị hoặc tài khoản đang đăng nhập.'];
     }
 
-    $stmt = $conn->prepare('DELETE FROM customers WHERE id = ?');
-    if (!$stmt) {
-        return ['ok' => false, 'message' => 'Không thể xóa khách hàng.'];
-    }
-    $stmt->bind_param('i', $customerId);
-    $ok = $stmt->execute();
-    $stmt->close();
+    $name = (string) ($customer['full_name'] ?? '');
 
-    if (!$ok) {
-        return ['ok' => false, 'message' => 'Không thể xóa khách hàng.'];
+    $conn->begin_transaction();
+    try {
+        $ordersKept = customerAdminDetachRelations($conn, $customerId);
+
+        $stmt = $conn->prepare('DELETE FROM customers WHERE id = ?');
+        if (!$stmt) {
+            throw new RuntimeException('Không chuẩn bị được lệnh xóa.');
+        }
+        $stmt->bind_param('i', $customerId);
+        if (!$stmt->execute()) {
+            throw new RuntimeException($stmt->error ?: $conn->error ?: 'Không xóa được khách hàng.');
+        }
+        $deletedRows = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($deletedRows < 1) {
+            throw new RuntimeException(
+                'Không xóa được tài khoản (ID #' . $customerId . '). Có thể dữ liệu đang bị ràng buộc hoặc tài khoản đã bị xóa trước đó.'
+            );
+        }
+
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return ['ok' => false, 'message' => 'Không thể xóa khách hàng. ' . $e->getMessage()];
     }
 
-    return ['ok' => true, 'message' => 'Đã xóa khách hàng khỏi hệ thống.'];
+    $orderNote = $ordersKept > 0
+        ? ' Đã giữ ' . $ordersKept . ' đơn hàng (tên, SĐT, chi tiết đơn không đổi).'
+        : '';
+
+    return [
+        'ok' => true,
+        'message' => 'Đã xóa tài khoản khách hàng' . ($name !== '' ? ' «' . $name . '»' : '') . '.' . $orderNote,
+        'orders_kept' => $ordersKept,
+    ];
 }

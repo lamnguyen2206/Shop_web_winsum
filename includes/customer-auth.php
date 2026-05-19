@@ -7,7 +7,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 function customerGenerateCode(): string
 {
-    return 'CUS' . date('Ymd') . random_int(1000, 9999);
+    return 'WS' . date('Ymd') . random_int(1000, 9999);
 }
 
 /**

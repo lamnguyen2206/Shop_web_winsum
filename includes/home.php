@@ -15,8 +15,8 @@ $newsPosts = homeGetNewsPosts($conn, 2);
                 <h1><?php echo htmlspecialchars($heroBanner['title'] ?? 'Nội thất và chiếu sáng cao cấp cho không gian sống đẳng cấp'); ?></h1>
                 <p class="subtitle"><?php echo htmlspecialchars($heroBanner['subtitle'] ?? 'Khám phá bộ sưu tập đèn trang trí, nội thất nhập khẩu và giải pháp thiết kế đồng bộ theo chuẩn châu Âu.'); ?></p>
                 <div class="hero-actions">
-                    <a href="<?php echo htmlspecialchars($heroBanner['link_url'] ?? 'index.php?view=catalog'); ?>" class="btn btn-primary">Mua sắm ngay</a>
-                    <a href="index.php?view=blog" class="btn btn-ghost">Xem tin tức</a>
+                    <a href="<?php echo e($heroBanner['link_url'] ?? app_url('catalog')); ?>" class="btn btn-primary">Mua sắm ngay</a>
+                    <a href="<?php echo e(app_url('blog')); ?>" class="btn btn-ghost">Xem tin tức</a>
                 </div>
             </div>
             <div class="hero-highlight">
@@ -44,7 +44,7 @@ $newsPosts = homeGetNewsPosts($conn, 2);
     <section class="home-section container">
         <div class="section-head">
             <h2>Our Category</h2>
-            <a href="index.php?view=catalog">Xem tất cả</a>
+            <a href="<?php echo e(app_url('catalog')); ?>">Xem tất cả</a>
         </div>
         <div class="category-grid">
             <?php if (empty($featuredCategories)): ?>
@@ -66,7 +66,7 @@ $newsPosts = homeGetNewsPosts($conn, 2);
     <section class="home-section container home-bestsellers">
         <div class="section-head">
             <h2>Sản phẩm chủ lực</h2>
-            <a href="index.php?view=catalog">Tất cả sản phẩm</a>
+            <a href="<?php echo e(app_url('catalog')); ?>">Tất cả sản phẩm</a>
         </div>
         <p class="home-section-note">Đề xuất theo số lượng khách đã mua trên cửa hàng.</p>
         <div class="product-grid">
@@ -80,12 +80,12 @@ $newsPosts = homeGetNewsPosts($conn, 2);
             <?php else: ?>
                 <?php foreach ($bestsellerProducts as $product): ?>
                     <article class="product-card">
-                        <a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug'] ?? ''); ?>" class="product-card-image" title="Xem chi tiết: <?php echo htmlspecialchars($product['name']); ?>" aria-label="Xem chi tiết <?php echo htmlspecialchars($product['name']); ?>">
+                        <a href="<?php echo e(app_url('product', ['slug' => $product['slug'] ?? ''])); ?>" class="product-card-image" title="Xem chi tiết: <?php echo htmlspecialchars($product['name']); ?>" aria-label="Xem chi tiết <?php echo htmlspecialchars($product['name']); ?>">
                             <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
                         </a>
                         <div class="product-info">
                             <p class="product-category"><?php echo htmlspecialchars($product['category']); ?></p>
-                            <h3><a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug'] ?? ''); ?>"><?php echo htmlspecialchars($product['name']); ?></a></h3>
+                            <h3><a href="<?php echo e(app_url('product', ['slug' => $product['slug'] ?? ''])); ?>"><?php echo htmlspecialchars($product['name']); ?></a></h3>
                             <p class="product-price"><?php echo htmlspecialchars($product['price']); ?></p>
                             <?php if (!empty($product['units_sold'])): ?>
                                 <p class="product-sold-badge">Đã bán <?php echo (int) $product['units_sold']; ?></p>
@@ -100,7 +100,7 @@ $newsPosts = homeGetNewsPosts($conn, 2);
     <section class="home-section home-news container">
         <div class="section-head">
             <h2>Our Blog</h2>
-            <a href="index.php?view=blog">Đến trang blog</a>
+            <a href="<?php echo e(app_url('blog')); ?>">Đến trang blog</a>
         </div>
         <div class="news-grid">
             <?php if (empty($newsPosts)): ?>
@@ -108,13 +108,13 @@ $newsPosts = homeGetNewsPosts($conn, 2);
             <?php else: ?>
                 <?php foreach ($newsPosts as $post): ?>
                     <article class="news-card">
-                        <a href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>">
+                        <a href="<?php echo e(app_url('post', ['slug' => $post['slug']])); ?>">
                             <img src="<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
                         </a>
                         <div>
-                            <h3><a href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>"><?php echo htmlspecialchars($post['title']); ?></a></h3>
+                            <h3><a href="<?php echo e(app_url('post', ['slug' => $post['slug']])); ?>"><?php echo htmlspecialchars($post['title']); ?></a></h3>
                             <p><?php echo htmlspecialchars($post['excerpt']); ?></p>
-                            <a class="read-more" href="index.php?view=post&amp;slug=<?php echo urlencode($post['slug']); ?>">Xem ngay</a>
+                            <a class="read-more" href="<?php echo e(app_url('post', ['slug' => $post['slug']])); ?>">Xem ngay</a>
                         </div>
                     </article>
                 <?php endforeach; ?>

@@ -10,7 +10,7 @@ if ($currentPost === null) {
     <section class="container post-not-found">
         <h1>Không tìm thấy bài viết</h1>
         <p>Bài viết bạn đang tìm không tồn tại hoặc đã được cập nhật đường dẫn.</p>
-        <a href="index.php?view=blog" class="read-more">Quay lại trang blog</a>
+        <a href="<?php echo e(app_url('blog')); ?>" class="read-more">Quay lại trang blog</a>
     </section>
     <?php
     return;
@@ -21,8 +21,8 @@ $relatedPosts = blogGetRelatedPosts($conn, $currentPost['category'], $currentPos
 
 <section class="container blog-detail">
     <p class="breadcrumb">
-        <a href="index.php">Trang chủ</a> /
-        <a href="index.php?view=blog">Tin tức</a> /
+        <a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> /
+        <a href="<?php echo e(app_url('blog')); ?>">Tin tức</a> /
         <span><?php echo htmlspecialchars($currentPost['title']); ?></span>
     </p>
 
