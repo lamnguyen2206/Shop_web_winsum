@@ -15,3 +15,5 @@ SOURCE database/schema/09_engagement.sql;
 SOURCE database/schema/10_blog.sql;
 SOURCE database/schema/11_site_content.sql;
 SOURCE database/schema/12_seed_winsumhome.sql;
+SOURCE database/schema/13_inventory_alerts.sql;
+SOURCE database/schema/14_seed_inventory.sql;

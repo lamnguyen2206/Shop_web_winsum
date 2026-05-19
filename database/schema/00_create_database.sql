@@ -1,2 +1,2 @@
-CREATE DATABASE IF NOT EXISTS winsumweb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS winsumwebfinal CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE winsumweb;

@@ -1,7 +1,9 @@
 <?php
 require __DIR__ . '/blog-repository.php';
+require_once __DIR__ . '/admin-auth.php';
 
 $blogPosts = blogGetAllPosts($conn);
+$isAdmin = adminCurrent();
 $featuredPosts = blogGetFeaturedPosts($conn, 3);
 if (empty($featuredPosts)) {
     $featuredPosts = array_slice($blogPosts, 0, 3);
@@ -12,7 +14,9 @@ if (empty($featuredPosts)) {
     <div class="blog-hero">
         <p class="breadcrumb"><a href="index.php">Trang chủ</a> / <span>Tin tức</span></p>
         <h1 class="blog-title">Tin tức</h1>
-        <a href="index.php?view=blog-editor" class="btn-secondary blog-editor-link">Soạn bài mới</a>
+        <?php if ($isAdmin): ?>
+            <a href="index.php?view=blog-editor" class="btn-secondary blog-editor-link">Soạn bài mới</a>
+        <?php endif; ?>
     </div>
 
     <div class="blog-layout">

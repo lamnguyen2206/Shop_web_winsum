@@ -218,3 +218,24 @@ FROM (
     SELECT 'ph5-pendant-lamp', 'assets/images/blog_3.png', 'PH5 Pendant Lamp', 1, 1
 ) x
 JOIN products p ON p.slug = x.product_slug;
+
+INSERT INTO product_reviews (product_id, reviewer_name, rating, title, content, status)
+SELECT p.id, 'Minh Anh', 5, 'Đèn đẹp, đúng mô tả', 'Lắp nhanh, ánh sáng dịu mắt, phù hợp phòng khách.', 'approved'
+FROM products p WHERE p.slug = 'den-treo-tran-axis'
+AND NOT EXISTS (SELECT 1 FROM product_reviews r WHERE r.product_id = p.id AND r.reviewer_name = 'Minh Anh');
+
+INSERT INTO product_reviews (product_id, reviewer_name, rating, title, content, status)
+SELECT p.id, 'Tuấn Kiệt', 4, 'Hài lòng', 'Thiết kế sang, giá hơi cao nhưng xứng đáng.', 'approved'
+FROM products p WHERE p.slug = 'ph5-pendant-lamp'
+AND NOT EXISTS (SELECT 1 FROM product_reviews r WHERE r.product_id = p.id AND r.reviewer_name = 'Tuấn Kiệt');
+
+UPDATE products p
+SET rating_average = COALESCE((
+        SELECT ROUND(AVG(r.rating), 2) FROM product_reviews r
+        WHERE r.product_id = p.id AND r.status = 'approved'
+    ), 0),
+    rating_count = COALESCE((
+        SELECT COUNT(*) FROM product_reviews r
+        WHERE r.product_id = p.id AND r.status = 'approved'
+    ), 0)
+WHERE p.slug IN ('den-treo-tran-axis', 'den-treo-bauhaus', 'ph5-pendant-lamp');

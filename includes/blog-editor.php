@@ -1,10 +1,17 @@
 <?php
 require_once __DIR__ . '/blog-repository.php';
+require_once __DIR__ . '/admin-auth.php';
+require_once __DIR__ . '/csrf.php';
+
+adminRequire();
 
 $editorMessage = '';
 $editorSuccess = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_blog_post'])) {
+    if (!csrfValidate()) {
+        $editorMessage = 'Phiên làm việc không hợp lệ. Vui lòng thử lại.';
+    } else {
     $title = trim((string) ($_POST['title'] ?? ''));
     $slug = trim((string) ($_POST['slug'] ?? ''));
     $excerpt = trim((string) ($_POST['excerpt'] ?? ''));
@@ -36,19 +43,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_blog_post'])) {
             $editorMessage = 'Không thể lưu bài viết. Kiểm tra slug có thể đã tồn tại.';
         }
     }
+    }
 }
 ?>
 
-<section class="container blog-editor-page">
-    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <a href="index.php?view=blog">Blog</a> / <span>Soạn bài</span></p>
-    <h1>Khung soạn blog kiểu Word</h1>
-    <p class="editor-intro">Khung này để bạn nhập nội dung tự nhiên: xuống dòng, chèn ảnh, in đậm/in nghiêng, heading, danh sách. Dữ liệu sẽ lưu trực tiếp vào bảng <code>blog_posts</code>.</p>
+<section class="container blog-editor-page admin-page">
+    <p class="breadcrumb"><a href="index.php?view=home">Trang chủ</a> / <span>Soạn blog</span></p>
+    <div class="admin-page-head">
+        <h1>Soạn bài blog</h1>
+    </div>
+    <?php include __DIR__ . '/admin-nav.php'; ?>
+    <p class="editor-intro">Nhập nội dung và lưu vào bảng <code>blog_posts</code>. Bài hiển thị sau khi đăng.</p>
 
     <?php if ($editorMessage !== ''): ?>
         <p class="checkout-notice <?php echo $editorSuccess ? 'success' : 'error'; ?>"><?php echo htmlspecialchars($editorMessage); ?></p>
     <?php endif; ?>
 
     <form method="post" action="index.php?view=blog-editor" class="blog-editor-form" id="blogEditorForm">
+        <?php echo csrfField(); ?>
         <div class="editor-grid">
             <label>Tiêu đề
                 <input type="text" name="title" required value="<?php echo htmlspecialchars((string) ($_POST['title'] ?? '')); ?>">
