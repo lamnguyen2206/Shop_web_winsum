@@ -9,10 +9,19 @@ require_once __DIR__ . '/includes/customer-auth.php';
 require_once __DIR__ . '/includes/customer-auth-post.php';
 require_once __DIR__ . '/includes/admin-auth.php';
 require_once __DIR__ . '/includes/inventory-repository.php';
+require_once __DIR__ . '/includes/admin-post.php';
 
 customerBootstrapAdminAccount($conn);
 inventoryEnsureAlertsTable($conn);
 customerAuthHandlePost($conn);
+
+$view = isset($_GET['view']) ? (string) $_GET['view'] : 'home';
+adminHandlePost($conn, $view);
+
+if (str_starts_with($view, 'admin') || $view === 'blog-editor') {
+    require_once __DIR__ . '/includes/admin-auth.php';
+    adminRequire();
+}
 
 $authFlash = customerAuthConsumeFlash();
 $authMessage = $authFlash['message'];
@@ -22,8 +31,6 @@ $authPrefill = $authFlash['prefill'];
 $currentCustomer = customerCurrent($conn);
 $isAdmin = adminCurrent();
 $storefrontGuest = !$currentCustomer && !$isAdmin;
-
-$view = isset($_GET['view']) ? (string) $_GET['view'] : 'home';
 
 if ($view === 'admin-login') {
     if ($isAdmin) {

@@ -29,10 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate()) {
         } else {
             $adminMessage = 'Không thể xóa đánh giá.';
         }
-    } elseif ($action === 'admin_logout') {
-        customerLogout();
-        header('Location: index.php?view=home');
-        exit;
     }
 }
 

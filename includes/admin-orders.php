@@ -23,10 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $adminMessage = 'Không thể cập nhật trạng thái đơn hàng.';
             }
             $orders = orderGetAllOrders($conn, 100);
-        } elseif ($action === 'admin_logout') {
-            customerLogout();
-            header('Location: index.php?view=home');
-            exit;
         }
     }
 }

@@ -22,37 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate()) {
     if ($action === 'save_product') {
         $result = productAdminSave($conn, $_POST);
         $adminMessage = $result['message'];
-        if ($result['ok']) {
-            header('Location: index.php?view=admin-products&msg=' . urlencode($result['message']));
-            exit;
-        }
-    } elseif ($action === 'delete_product') {
-        $deleteId = (int) ($_POST['product_id'] ?? 0);
-        if (productAdminDelete($conn, $deleteId)) {
-            header('Location: index.php?view=admin-products&msg=' . urlencode('Đã ẩn sản phẩm khỏi cửa hàng.'));
-            exit;
-        }
-        $adminMessage = 'Không thể xóa sản phẩm.';
-    } elseif ($action === 'mark_inventory_read') {
-        $alertId = (int) ($_POST['alert_id'] ?? 0);
-        if ($alertId > 0 && inventoryMarkAlertRead($conn, $alertId)) {
-            header('Location: index.php?view=admin-products&msg=' . urlencode('Đã đánh dấu đã xử lý cảnh báo tồn kho.'));
-            exit;
-        }
-        $adminMessage = 'Không thể cập nhật cảnh báo.';
-    } elseif ($action === 'mark_all_inventory_read') {
-        inventoryMarkAllAlertsRead($conn);
-        header('Location: index.php?view=admin-products&msg=' . urlencode('Đã đánh dấu tất cả cảnh báo tồn kho.'));
-        exit;
-    } elseif ($action === 'apply_featured_from_sales') {
-        $limit = max(1, min(12, (int) ($_POST['featured_limit'] ?? 6)));
-        $result = productAdminApplyFeaturedFromSales($conn, $limit);
-        header('Location: index.php?view=admin-products&msg=' . urlencode($result['message']));
-        exit;
-    } elseif ($action === 'admin_logout') {
-        customerLogout();
-        header('Location: index.php?view=home');
-        exit;
     }
 }
 

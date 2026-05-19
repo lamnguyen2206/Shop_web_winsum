@@ -21,49 +21,6 @@ $detailOrders = $detail ? customerAdminGetRecentOrders($conn, $detailId) : [];
 
 $actingId = (int) ($_SESSION['customer_id'] ?? 0);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrfValidate()) {
-        $adminMessage = 'Phiên làm việc không hợp lệ.';
-    } else {
-        $action = (string) ($_POST['action'] ?? '');
-        if ($action === 'update_customer_status') {
-            $customerId = (int) ($_POST['customer_id'] ?? 0);
-            $newStatus = trim((string) ($_POST['status'] ?? ''));
-            $result = customerAdminUpdateStatus($conn, $customerId, $newStatus, $actingId);
-            $adminMessage = $result['message'];
-            if ($result['ok']) {
-                $redirect = customerAdminBuildListUrl($filters, $page) . '&id=' . $customerId;
-                header('Location: ' . $redirect . '&msg=' . urlencode($result['message']));
-                exit;
-            }
-        } elseif ($action === 'toggle_customer_block') {
-            $customerId = (int) ($_POST['customer_id'] ?? 0);
-            $result = customerAdminToggleBlock($conn, $customerId, $actingId);
-            $adminMessage = $result['message'];
-            if ($result['ok']) {
-                $redirect = customerAdminBuildListUrl($filters, $page);
-                if ($detailId === $customerId || $customerId > 0) {
-                    $redirect .= '&id=' . $customerId;
-                }
-                header('Location: ' . $redirect . '&msg=' . urlencode($result['message']));
-                exit;
-            }
-        } elseif ($action === 'delete_customer') {
-            $customerId = (int) ($_POST['customer_id'] ?? 0);
-            $result = customerAdminDelete($conn, $customerId, $actingId);
-            if ($result['ok']) {
-                header('Location: ' . customerAdminBuildListUrl($filters, $page) . '&msg=' . urlencode($result['message']));
-                exit;
-            }
-            $adminMessage = $result['message'];
-        } elseif ($action === 'admin_logout') {
-            customerLogout();
-            header('Location: index.php?view=home');
-            exit;
-        }
-    }
-}
-
 if (isset($_GET['msg'])) {
     $adminMessage = (string) $_GET['msg'];
 }

@@ -6,12 +6,6 @@ require_once __DIR__ . '/csrf.php';
 
 adminRequire();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfValidate() && ($_POST['action'] ?? '') === 'admin_logout') {
-    customerLogout();
-    header('Location: index.php?view=home');
-    exit;
-}
-
 $stats = adminGetDashboardStats($conn);
 $recentOrders = adminGetRecentOrders($conn, 6);
 require_once __DIR__ . '/inventory-repository.php';
