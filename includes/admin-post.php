@@ -37,6 +37,12 @@ function adminHandlePost(mysqli $conn, string $view): void
         return;
     }
 
+    $customerAdminActions = ['toggle_customer_block', 'update_customer_status'];
+    if (in_array($action, $customerAdminActions, true)) {
+        adminHandleCustomersPost($conn);
+        return;
+    }
+
     if ($view === 'admin-customers') {
         adminHandleCustomersPost($conn);
         return;
@@ -44,6 +50,55 @@ function adminHandlePost(mysqli $conn, string $view): void
 
     if ($view === 'admin-products' && csrfValidate()) {
         adminHandleProductsPost($conn);
+    }
+
+    if (in_array($view, ['admin-orders', 'admin-order-detail'], true) && csrfValidate()) {
+        adminHandleOrdersPost($conn, $view);
+    }
+}
+
+function adminHandleOrdersPost(mysqli $conn, string $view): void
+{
+    require_once __DIR__ . '/order-repository.php';
+
+    $action = (string) ($_POST['action'] ?? '');
+
+    if ($action === 'update_payment_status') {
+        $orderId = (int) ($_POST['order_id'] ?? 0);
+        $paymentStatus = (string) ($_POST['payment_status'] ?? '');
+        $ok = orderUpdatePaymentStatus($conn, $orderId, $paymentStatus);
+        $stmt = $conn->prepare('SELECT order_code FROM orders WHERE id = ? LIMIT 1');
+        $code = '';
+        if ($stmt) {
+            $stmt->bind_param('i', $orderId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $code = (string) ($row['order_code'] ?? '');
+            $stmt->close();
+        }
+        redirect(app_url('admin-order-detail', [
+            'code' => $code,
+            'msg' => $ok ? 'Đã cập nhật trạng thái thanh toán.' : 'Không thể cập nhật thanh toán.',
+        ]));
+    }
+
+    if ($action === 'update_fulfillment_status') {
+        $orderId = (int) ($_POST['order_id'] ?? 0);
+        $fulfillment = (string) ($_POST['fulfillment_status'] ?? '');
+        $ok = orderUpdateFulfillmentStatus($conn, $orderId, $fulfillment);
+        $stmt = $conn->prepare('SELECT order_code FROM orders WHERE id = ? LIMIT 1');
+        $code = '';
+        if ($stmt) {
+            $stmt->bind_param('i', $orderId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $code = (string) ($row['order_code'] ?? '');
+            $stmt->close();
+        }
+        redirect(app_url('admin-order-detail', [
+            'code' => $code,
+            'msg' => $ok ? 'Đã cập nhật trạng thái giao hàng.' : 'Không thể cập nhật giao hàng.',
+        ]));
     }
 }
 
@@ -61,7 +116,7 @@ function adminHandleCustomersPost(mysqli $conn): void
     $totalPages = max(1, (int) ceil($total / $perPage));
     $page = min($filters['page'], $totalPages);
     $detailId = (int) ($_GET['id'] ?? 0);
-    $actingId = (int) ($_SESSION['customer_id'] ?? 0);
+    $actingId = adminManagementActingCustomerId();
     $action = (string) ($_POST['action'] ?? '');
 
     if ($action === 'update_customer_status') {
@@ -86,22 +141,6 @@ function adminHandleCustomersPost(mysqli $conn): void
             redirect($redirect . '&msg=' . urlencode($result['message']) . '&msg_ok=1');
         }
         redirect(customerAdminBuildListUrl($filters, $page) . '&msg=' . urlencode($result['message']) . '&msg_ok=0');
-    }
-
-    if ($action === 'delete_customer') {
-        $customerId = (int) ($_POST['customer_id'] ?? $_POST['delete_customer_id'] ?? 0);
-        if ($customerId <= 0) {
-            redirect(customerAdminBuildListUrl($filters, $page) . '&msg=' . urlencode('Không xác định được khách hàng cần xóa. Hãy bấm biểu tượng thùng rác trên dòng khách hàng rồi xác nhận lại.') . '&msg_ok=0');
-        }
-        $result = customerAdminDelete($conn, $customerId, $actingId);
-        if ($result['ok'] && $detailId === $customerId) {
-            $detailId = 0;
-        }
-        $url = customerAdminBuildListUrl($filters, $page);
-        if ($detailId > 0) {
-            $url .= '&id=' . $detailId;
-        }
-        redirect($url . '&msg=' . urlencode($result['message']) . ($result['ok'] ? '&msg_ok=1' : '&msg_ok=0'));
     }
 
     redirect(customerAdminBuildListUrl($filters, $page) . '&msg=' . urlencode('Thao tác không hợp lệ.') . '&msg_ok=0');
@@ -149,9 +188,4 @@ function adminHandleProductsPost(mysqli $conn): void
         redirect(app_url('admin-products', ['msg' => 'Đã đánh dấu tất cả cảnh báo tồn kho.']));
     }
 
-    if ($action === 'apply_featured_from_sales') {
-        $limit = max(1, min(12, (int) ($_POST['featured_limit'] ?? 6)));
-        $result = productAdminApplyFeaturedFromSales($conn, $limit);
-        redirect(app_url('admin-products', ['msg' => $result['message']]));
-    }
 }

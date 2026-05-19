@@ -2,7 +2,8 @@
 require_once __DIR__ . '/order-repository.php';
 
 $adminMessage = '';
-$orders = orderGetAllOrders($conn, 100);
+$searchQ = trim((string) ($_GET['q'] ?? $_POST['q'] ?? ''));
+$orders = orderGetAllOrders($conn, 100, $searchQ);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrfValidate()) {
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $adminMessage = 'Không thể cập nhật trạng thái đơn hàng.';
             }
-            $orders = orderGetAllOrders($conn, 100);
+            $orders = orderGetAllOrders($conn, 100, $searchQ);
         }
     }
 }
@@ -29,14 +30,24 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
     <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <span>Quản trị đơn hàng</span></p>
     <div class="admin-page-head">
         <h1>Quản lý đơn hàng</h1>
-        <form method="post" action="index.php?view=admin-orders" class="admin-inline-form">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="admin_logout">
-            <button type="submit" class="btn-secondary">Đăng xuất</button>
-        </form>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>
+
+    <div class="admin-orders-search">
+        <form method="get" action="index.php" class="admin-orders-search-form">
+            <input type="hidden" name="view" value="admin-orders">
+            <input
+                type="search"
+                name="q"
+                class="admin-orders-search-input"
+                value="<?php echo htmlspecialchars($searchQ); ?>"
+                placeholder="Tìm theo mã đơn, SĐT hoặc tên khách hàng..."
+                autocomplete="off"
+            >
+            <button type="submit" class="admin-orders-search-btn">Tìm kiếm</button>
+        </form>
+    </div>
 
     <?php if ($adminMessage !== ''): ?>
         <p class="account-notice"><?php echo htmlspecialchars($adminMessage); ?></p>
@@ -44,7 +55,7 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
 
     <?php if (empty($orders)): ?>
         <div class="empty-state">
-            <p>Chưa có đơn hàng nào trong hệ thống.</p>
+            <p><?php echo $searchQ !== '' ? 'Không tìm thấy đơn hàng phù hợp với từ khóa tìm kiếm.' : 'Chưa có đơn hàng nào trong hệ thống.'; ?></p>
         </div>
     <?php else: ?>
         <div class="admin-panel admin-panel-wide">
@@ -56,6 +67,7 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
                 <span>Trạng thái</span>
                 <span>Tổng tiền</span>
                 <span>Ngày đặt</span>
+                <span>Chi tiết</span>
                 <span>Cập nhật</span>
             </div>
             <?php foreach ($orders as $order): ?>
@@ -67,8 +79,14 @@ $statusOptions = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'ca
                     <span><?php echo number_format((float) $order['grand_total'], 0, ',', '.'); ?>đ</span>
                     <span><?php echo htmlspecialchars((string) $order['ordered_at']); ?></span>
                     <span>
+                        <a class="btn-secondary order-link" href="<?php echo e(app_url('admin-order-detail', ['code' => (string) $order['order_code']])); ?>">Chi tiết</a>
+                    </span>
+                    <span>
                         <form method="post" action="index.php?view=admin-orders" class="admin-status-form admin-order-status-form">
                             <?php echo csrfField(); ?>
+                            <?php if ($searchQ !== ''): ?>
+                                <input type="hidden" name="q" value="<?php echo htmlspecialchars($searchQ); ?>">
+                            <?php endif; ?>
                             <input type="hidden" name="action" value="update_status">
                             <input type="hidden" name="order_id" value="<?php echo (int) $order['id']; ?>">
                             <select name="status" class="admin-order-status-select" aria-label="Trạng thái đơn hàng">

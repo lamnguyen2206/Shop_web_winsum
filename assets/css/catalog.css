@@ -619,6 +619,15 @@
     margin-bottom: 14px;
 }
 
+.order-cancel-form {
+    margin-top: 16px;
+}
+
+.btn-cancel-order {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
 .order-item-img {
     width: 70px;
     height: 52px;

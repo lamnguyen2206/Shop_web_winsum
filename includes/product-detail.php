@@ -105,6 +105,7 @@ $inventoryQty = inventoryGetAvailableQty($conn, (int) $product['id']);
                 <p class="product-inventory-qty">Tồn kho: <strong><?php echo (int) $inventoryQty; ?></strong> sản phẩm</p>
             <?php elseif ($product['stock_status'] === 'preorder'): ?>
                 <p class="product-inventory-qty product-inventory-qty--preorder">Đang nhận đặt trước — chờ nhập hàng</p>
+                <p class="preorder-notice">Đơn có sản phẩm <strong>Đặt trước</strong> sẽ không trừ tồn kho khi đặt hàng.</p>
             <?php endif; ?>
 
             <p class="product-short"><?php echo htmlspecialchars($product['short_description']); ?></p>

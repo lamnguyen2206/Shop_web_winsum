@@ -35,11 +35,6 @@ $reviews = reviewAdminGetAll($conn, $statusFilter !== '' ? $statusFilter : null)
 
     <div class="admin-page-head">
         <h1>Quản lý đánh giá sản phẩm</h1>
-        <form method="post" action="index.php?view=admin-reviews" class="admin-inline-form">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="admin_logout">
-            <button type="submit" class="btn-secondary">Đăng xuất</button>
-        </form>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>

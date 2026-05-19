@@ -112,6 +112,7 @@ function cartSyncPricesFromDb(mysqli $conn): void
         $item['price'] = (int) round((float) $row['base_price']);
         $item['name'] = (string) $row['name'];
         $item['sku'] = (string) $row['sku'];
+        $item['stock_status'] = (string) $row['stock_status'];
         $updated[] = $item;
     }
     $stmt->close();
@@ -158,7 +159,8 @@ function cartCalculateTotals(array $items, ?mysqli $conn = null, ?int $customerI
 
     if ($couponCode !== '' && $conn instanceof mysqli) {
         require_once __DIR__ . '/coupon-repository.php';
-        $validation = couponValidate($conn, $couponCode, (float) $subtotal, $customerId);
+        $guestPhone = (string) ($_SESSION['guest_coupon_phone'] ?? '');
+        $validation = couponValidate($conn, $couponCode, (float) $subtotal, $customerId, $guestPhone);
         if ($validation['ok']) {
             $discount = couponCalculateDiscount($validation['coupon'], (float) $subtotal, (float) $shipping);
         } else {

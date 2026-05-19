@@ -17,7 +17,9 @@ $isAdmin = adminCurrent();
                 <li><a class="<?php echo ($view === 'home') ? 'active' : ''; ?>" href="<?php echo e(app_url('home')); ?>">Trang chủ</a></li>
                 <li><a class="<?php echo ($view === 'catalog' || $view === 'product') ? 'active' : ''; ?>" href="<?php echo e(app_url('catalog')); ?>">Sản phẩm</a></li>
                 <li><a class="<?php echo ($view === 'blog' || $view === 'post') ? 'active' : ''; ?>" href="<?php echo e(app_url('blog')); ?>">Blog</a></li>
+                <?php if (!$isAdmin): ?>
                 <li><a class="<?php echo ($view === 'orders' || $view === 'order-detail') ? 'active' : ''; ?>" href="<?php echo e(app_url('orders')); ?>">Đơn hàng</a></li>
+                <?php endif; ?>
                 <?php if (empty($currentCustomer) && !$isAdmin): ?>
                     <li><a class="<?php echo ($view === 'account') ? 'active' : ''; ?>" href="<?php echo e(auth_login_url('account')); ?>">Tài khoản</a></li>
                 <?php endif; ?>
@@ -41,7 +43,6 @@ $isAdmin = adminCurrent();
                     <?php if ($isAdmin): ?>
                         <p class="nav-account-dropdown-head">Tài khoản quản trị</p>
                         <a role="menuitem" href="<?php echo e(app_url('admin-dashboard')); ?>">Trang quản trị</a>
-                        <a role="menuitem" href="<?php echo e(app_url('orders')); ?>">Đơn của tôi</a>
                         <form method="post" action="" class="nav-account-logout">
                             <?php echo csrfField(); ?>
                             <input type="hidden" name="auth_action" value="logout">

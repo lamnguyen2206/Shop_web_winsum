@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/helpers.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 function couponGetByCode(mysqli $conn, string $code): ?array
 {
@@ -40,6 +45,74 @@ function couponCountCustomerUses(mysqli $conn, int $couponId, ?int $customerId):
     return (int) ($row['total'] ?? 0);
 }
 
+function couponCountUsesByPhone(mysqli $conn, int $couponId, string $phone): int
+{
+    $normalized = phoneNormalize($phone);
+    if ($normalized === '') {
+        return 0;
+    }
+
+    $stmt = $conn->prepare("SELECT COUNT(DISTINCT o.id) AS total
+                            FROM orders o
+                            WHERE o.coupon_id = ?
+                              AND REPLACE(REPLACE(REPLACE(o.customer_phone, ' ', ''), '-', ''), '.', '') = ?");
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('is', $couponId, $normalized);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int) ($row['total'] ?? 0);
+}
+
+/** Số đơn đã đặt trong phiên trình duyệt (guest) với mã + SĐT. */
+function couponCountSessionUsesForPhone(int $couponId, string $phone): int
+{
+    $normalized = phoneNormalize($phone);
+    if ($normalized === '' || empty($_SESSION['coupon_order_uses']) || !is_array($_SESSION['coupon_order_uses'])) {
+        return 0;
+    }
+    return (int) ($_SESSION['coupon_order_uses'][$couponId][$normalized] ?? 0);
+}
+
+function couponRecordSessionOrderUseForPhone(int $couponId, string $phone): void
+{
+    $normalized = phoneNormalize($phone);
+    if ($normalized === '') {
+        return;
+    }
+    if (!isset($_SESSION['coupon_order_uses']) || !is_array($_SESSION['coupon_order_uses'])) {
+        $_SESSION['coupon_order_uses'] = [];
+    }
+    if (!isset($_SESSION['coupon_order_uses'][$couponId]) || !is_array($_SESSION['coupon_order_uses'][$couponId])) {
+        $_SESSION['coupon_order_uses'][$couponId] = [];
+    }
+    $_SESSION['coupon_order_uses'][$couponId][$normalized] = ($_SESSION['coupon_order_uses'][$couponId][$normalized] ?? 0) + 1;
+}
+
+/** Đã áp mã vào giỏ trong phiên (chưa đặt hàng) — chặn áp lại vượt giới hạn. */
+function couponHasSessionCartApply(int $couponId, string $phone): bool
+{
+    $normalized = phoneNormalize($phone);
+    if ($normalized === '') {
+        return false;
+    }
+    return !empty($_SESSION['coupon_cart_applied'][$couponId][$normalized]);
+}
+
+function couponMarkSessionCartApply(int $couponId, string $phone): void
+{
+    $normalized = phoneNormalize($phone);
+    if ($normalized === '') {
+        return;
+    }
+    if (!isset($_SESSION['coupon_cart_applied']) || !is_array($_SESSION['coupon_cart_applied'])) {
+        $_SESSION['coupon_cart_applied'] = [];
+    }
+    $_SESSION['coupon_cart_applied'][$couponId][$normalized] = true;
+}
+
 function couponCountTotalUses(mysqli $conn, int $couponId): int
 {
     $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM coupon_redemptions WHERE coupon_id = ?");
@@ -53,7 +126,7 @@ function couponCountTotalUses(mysqli $conn, int $couponId): int
     return (int) ($row['total'] ?? 0);
 }
 
-function couponValidate(mysqli $conn, string $code, float $subtotal, ?int $customerId): array
+function couponValidate(mysqli $conn, string $code, float $subtotal, ?int $customerId, string $guestPhone = ''): array
 {
     $coupon = couponGetByCode($conn, $code);
     if (!$coupon) {
@@ -78,8 +151,20 @@ function couponValidate(mysqli $conn, string $code, float $subtotal, ?int $custo
 
     $couponId = (int) $coupon['id'];
     $perCustomerLimit = $coupon['per_customer_limit'] !== null ? (int) $coupon['per_customer_limit'] : null;
-    if ($perCustomerLimit !== null && $customerId) {
-        if (couponCountCustomerUses($conn, $couponId, $customerId) >= $perCustomerLimit) {
+    if ($perCustomerLimit !== null) {
+        $uses = 0;
+        if ($customerId) {
+            $uses = couponCountCustomerUses($conn, $couponId, $customerId);
+        }
+        $phone = phoneNormalize($guestPhone);
+        if ($phone === '' && !empty($_SESSION['guest_coupon_phone'])) {
+            $phone = phoneNormalize((string) $_SESSION['guest_coupon_phone']);
+        }
+        if ($phone !== '') {
+            $uses = max($uses, couponCountUsesByPhone($conn, $couponId, $phone));
+            $uses = max($uses, couponCountSessionUsesForPhone($couponId, $phone));
+        }
+        if ($uses >= $perCustomerLimit) {
             return ['ok' => false, 'message' => 'Bạn đã sử dụng hết lượt cho mã giảm giá này.'];
         }
     }

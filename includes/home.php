@@ -3,7 +3,7 @@ require __DIR__ . '/home-repository.php';
 
 $heroBanner = homeGetHeroBanner($conn);
 $featuredCategories = homeGetFeaturedCategories($conn, 3);
-$bestsellerProducts = homeGetBestsellerProducts($conn, 6);
+$bestsellerProducts = homeGetBestsellerProducts($conn);
 $newsPosts = homeGetNewsPosts($conn, 2);
 ?>
 
@@ -68,7 +68,7 @@ $newsPosts = homeGetNewsPosts($conn, 2);
             <h2>Sản phẩm chủ lực</h2>
             <a href="<?php echo e(app_url('catalog')); ?>">Tất cả sản phẩm</a>
         </div>
-        <p class="home-section-note">Đề xuất theo số lượng khách đã mua trên cửa hàng.</p>
+        <p class="home-section-note">Top sản phẩm bán chạy trong 30 ngày gần nhất (theo đơn hợp lệ).</p>
         <div class="product-grid">
             <?php if (empty($bestsellerProducts)): ?>
                 <article class="product-card placeholder-card">

@@ -16,8 +16,8 @@ if ($currentCustomer) {
 
     <?php if (!$currentCustomer): ?>
         <div class="empty-state">
-            <p>Bạn cần đăng nhập để xem lịch sử đơn hàng.</p>
-            <a class="btn-secondary" href="<?php echo e(auth_login_url('orders')); ?>">Đăng nhập ngay</a>
+            <p>Đăng nhập để xem đơn hàng trong tài khoản.</p>
+            <a class="btn-secondary" href="<?php echo e(auth_login_url('orders')); ?>">Đăng nhập</a>
         </div>
     <?php elseif (empty($orders)): ?>
         <div class="empty-state">

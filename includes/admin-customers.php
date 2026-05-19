@@ -15,7 +15,7 @@ $detailId = (int) ($_GET['id'] ?? 0);
 $detail = $detailId > 0 ? customerAdminGetById($conn, $detailId) : null;
 $detailOrders = $detail ? customerAdminGetRecentOrders($conn, $detailId) : [];
 
-$actingId = (int) ($_SESSION['customer_id'] ?? 0);
+$actingId = adminManagementActingCustomerId();
 
 if (isset($_GET['msg'])) {
     $adminMessage = (string) $_GET['msg'];
@@ -33,11 +33,6 @@ $rowIndexStart = $offset;
 
     <div class="admin-page-head">
         <h1>Quản lý khách hàng</h1>
-        <form method="post" action="index.php?view=admin-customers" class="admin-inline-form">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="admin_logout">
-            <button type="submit" class="btn-secondary">Đăng xuất</button>
-        </form>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>
@@ -144,9 +139,6 @@ $rowIndexStart = $offset;
                                                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zm-7 0V6a3 3 0 0 1 6 0v2h-6z"/></svg>
                                                 <?php endif; ?>
                                             </button>
-                                            <button type="button" class="btn-action btn-action--delete" title="Xóa" aria-label="Xóa khách hàng" data-delete-id="<?php echo $rowId; ?>" onclick="AdminCustomers.onDelete(<?php echo $rowId; ?>, event)">
-                                                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                                            </button>
                                             <?php else: ?>
                                             <span class="admin-muted admin-row-actions-muted">—</span>
                                             <?php endif; ?>
@@ -233,8 +225,9 @@ $rowIndexStart = $offset;
                     <div class="admin-customer-crud" id="customer-edit">
                         <h3 class="admin-section-title">Quản lý tài khoản</h3>
                         <p class="admin-hint">Cập nhật trạng thái khách hàng (hoạt động / ngưng / khóa).</p>
-                        <form method="post" class="admin-form admin-customer-status-form">
+                        <form method="post" action="<?php echo e(app_url('admin-customers')); ?>" class="admin-form admin-customer-status-form">
                             <?php echo csrfField(); ?>
+                            <input type="hidden" name="view" value="admin-customers">
                             <input type="hidden" name="action" value="update_customer_status">
                             <input type="hidden" name="customer_id" value="<?php echo (int) $detail['id']; ?>">
                             <label for="customer-status">Trạng thái
@@ -248,14 +241,6 @@ $rowIndexStart = $offset;
                             </label>
                             <button type="submit">Lưu thay đổi</button>
                         </form>
-                        <?php if (customerAdminCanManageRow($detail, $actingId)): ?>
-                        <div class="admin-customer-danger-zone">
-                            <p class="admin-hint">Xóa tài khoản khách; đơn hàng cũ vẫn được lưu tại Quản lý đơn hàng.</p>
-                            <button type="button" class="btn-danger-outline" onclick="AdminCustomers.onDelete(<?php echo (int) $detail['id']; ?>)">
-                                Xóa khách hàng
-                            </button>
-                        </div>
-                        <?php endif; ?>
                     </div>
                     <?php else: ?>
                     <div class="admin-customer-crud admin-customer-crud--muted">
@@ -268,42 +253,12 @@ $rowIndexStart = $offset;
         <?php endif; ?>
     </div>
 
-    <form id="admin-customer-action-form" method="post" action="index.php" class="visually-hidden">
+    <form id="admin-customer-action-form" method="post" action="<?php echo e(app_url('admin-customers')); ?>" class="visually-hidden">
         <input type="hidden" name="view" value="admin-customers">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="">
         <input type="hidden" name="customer_id" value="">
     </form>
-
-    <div id="customer-delete-modal" class="admin-modal" hidden>
-        <div class="admin-modal-backdrop" data-modal-close></div>
-        <form id="customer-delete-form" method="post" action="index.php" class="admin-modal-box" role="dialog" aria-modal="true" aria-labelledby="customer-delete-title">
-            <input type="hidden" name="view" value="admin-customers">
-            <input type="hidden" name="action" value="delete_customer">
-            <input type="hidden" name="customer_id" id="customer-delete-id" value="">
-            <input type="hidden" name="delete_customer_id" id="customer-delete-id-backup" value="">
-            <?php if ($filters['q'] !== ''): ?>
-                <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q']); ?>">
-            <?php endif; ?>
-            <?php if ($filters['status'] !== ''): ?>
-                <input type="hidden" name="status" value="<?php echo htmlspecialchars($filters['status']); ?>">
-            <?php endif; ?>
-            <?php if (($filters['role'] ?? 'customer') !== 'customer'): ?>
-                <input type="hidden" name="role" value="<?php echo htmlspecialchars($filters['role']); ?>">
-            <?php endif; ?>
-            <?php if ($page > 1): ?>
-                <input type="hidden" name="page" value="<?php echo (int) $page; ?>">
-            <?php endif; ?>
-            <?php echo csrfField(); ?>
-            <h3 id="customer-delete-title">Xác nhận xóa</h3>
-            <p>Bạn có chắc chắn muốn xóa tài khoản khách hàng <strong id="customer-delete-name">này</strong> không?</p>
-            <p class="admin-modal-note">Chỉ xóa <strong>tài khoản đăng nhập</strong>. Mọi đơn hàng đã đặt vẫn giữ nguyên trong mục Quản lý đơn hàng (tên, SĐT, sản phẩm, tổng tiền).</p>
-            <div class="admin-modal-actions">
-                <button type="button" class="btn-secondary" data-modal-close>Hủy</button>
-                <button type="submit" class="btn-action btn-action--delete btn-delete-confirm">Xóa</button>
-            </div>
-        </form>
-    </div>
 
     <script>
         window.adminCustomersConfig = { listUrl: <?php echo json_encode($listUrlForJs, JSON_UNESCAPED_UNICODE); ?> };

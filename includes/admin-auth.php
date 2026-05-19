@@ -30,6 +30,19 @@ function adminLogout(): void
     unset($_SESSION['admin_logged_in'], $_SESSION['admin_username'], $_SESSION['customer_role']);
 }
 
+/**
+ * ID khách đang đăng nhập khi kiểm tra quyền trên panel admin.
+ * Trả về 0 nếu là quản trị — cho phép xóa/khóa tài khoản khách khác (trừ role admin).
+ */
+function adminManagementActingCustomerId(): int
+{
+    if (adminCurrent()) {
+        return 0;
+    }
+
+    return (int) ($_SESSION['customer_id'] ?? 0);
+}
+
 function adminRequire(): void
 {
     if (adminCurrent()) {

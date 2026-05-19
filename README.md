@@ -41,7 +41,7 @@ mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
 - **Chi tiết sản phẩm**: gallery ảnh, thông số, tab mô tả/đánh giá, gửi đánh giá
 - Giỏ hàng, thanh toán, mã giảm giá từ database
 - **Tồn kho**: trừ kho khi đặt hàng; hết kho → tự chuyển **Đặt trước** + cảnh báo admin
-- Đăng ký / đăng nhập, xem đơn hàng
+- Đăng ký / đăng nhập, xem đơn hàng, hủy đơn khi còn chờ xử lý (tài khoản đã đăng nhập)
 - Blog tin tức
 
 ### Đăng nhập / đăng ký
@@ -99,6 +99,12 @@ assets/css|js/
 ```
 
 **Luồng request:** `index.php` → `bootstrap/app.php` (POST handlers) → layout → `includes/{view}.php`
+
+### Ghi chú nghiệp vụ
+
+- **Biến thể sản phẩm** (`product_variants`): có trong schema nhưng storefront hiện dùng một SKU/ giá mỗi sản phẩm.
+- **Doanh thu admin**: “Đã thu” = đơn không hủy/trả và `payment_status = paid`; “Giá trị đơn” = tổng đơn chưa hủy/trả (ước tính, kể cả COD chưa thu).
+- **Hủy/trả đơn**: hoàn tồn kho một lần (cờ `inventory_restocked`); khách hủy từ web khi đơn `pending`/`processing`.
 
 ## Demo chi tiết sản phẩm
 

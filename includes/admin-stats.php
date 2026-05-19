@@ -12,6 +12,7 @@ function adminGetDashboardStats(mysqli $conn): array
         'reviews_pending' => 0,
         'reviews_total' => 0,
         'revenue_total' => 0.0,
+        'revenue_paid' => 0.0,
         'inventory_alerts_unread' => 0,
     ];
 
@@ -24,13 +25,14 @@ function adminGetDashboardStats(mysqli $conn): array
         'reviews_pending' => "SELECT COUNT(*) AS c FROM product_reviews WHERE status = 'pending'",
         'reviews_total' => "SELECT COUNT(*) AS c FROM product_reviews",
         'revenue_total' => "SELECT COALESCE(SUM(grand_total), 0) AS c FROM orders WHERE status NOT IN ('cancelled', 'returned')",
+        'revenue_paid' => "SELECT COALESCE(SUM(grand_total), 0) AS c FROM orders WHERE status NOT IN ('cancelled', 'returned') AND payment_status = 'paid'",
     ];
 
     foreach ($queries as $key => $sql) {
         $result = $conn->query($sql);
         if ($result) {
             $row = $result->fetch_assoc();
-            $stats[$key] = $key === 'revenue_total' ? (float) ($row['c'] ?? 0) : (int) ($row['c'] ?? 0);
+            $stats[$key] = str_starts_with($key, 'revenue_') ? (float) ($row['c'] ?? 0) : (int) ($row['c'] ?? 0);
         }
     }
 

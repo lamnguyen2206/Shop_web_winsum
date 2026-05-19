@@ -21,6 +21,8 @@ require_once __DIR__ . '/../includes/blog-editor-handler.php';
 
 customerBootstrapAdminAccount($conn);
 inventoryEnsureAlertsTable($conn);
+require_once __DIR__ . '/../includes/order-repository.php';
+orderEnsureSchema($conn);
 
 $requestedView = isset($_GET['view'])
     ? (string) $_GET['view']
@@ -62,6 +64,9 @@ if ($authOpenModal === null && isset($_GET['auth']) && in_array($_GET['auth'], [
     $authOpenModal = (string) $_GET['auth'];
 }
 $authPrefill = $authFlash['prefill'];
+if ($authPrefill === [] && isset($_GET['phone']) && trim((string) $_GET['phone']) !== '') {
+    $authPrefill = ['phone' => trim((string) $_GET['phone'])];
+}
 $currentCustomer = customerCurrent($conn);
 $isAdmin = adminCurrent();
 $storefrontGuest = !$currentCustomer && !$isAdmin;

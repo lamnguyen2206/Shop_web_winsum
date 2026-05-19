@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/helpers.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
@@ -132,7 +133,35 @@ function customerRegister(mysqli $conn, string $fullName, string $phone, string 
     $stmt->close();
 
     $_SESSION['customer_id'] = $customerId;
-    return ['ok' => true, 'message' => 'Đăng ký thành công.', 'customer_id' => $customerId];
+    $linked = customerLinkOrdersByPhone($conn, $customerId, $phone);
+    $message = 'Đăng ký thành công.';
+    if ($linked > 0) {
+        $message .= ' Đã gắn ' . $linked . ' đơn hàng trước đó vào tài khoản của bạn.';
+    }
+    return ['ok' => true, 'message' => $message, 'customer_id' => $customerId];
+}
+
+/**
+ * Gắn đơn guest (cùng SĐT) vào tài khoản khách.
+ */
+function customerLinkOrdersByPhone(mysqli $conn, int $customerId, string $phone): int
+{
+    $normalized = phoneNormalize($phone);
+    if ($customerId <= 0 || $normalized === '') {
+        return 0;
+    }
+
+    $stmt = $conn->prepare('UPDATE orders SET customer_id = ?, updated_at = NOW()
+                            WHERE customer_id IS NULL
+                              AND REPLACE(REPLACE(REPLACE(customer_phone, " ", ""), "-", ""), ".", "") = ?');
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('is', $customerId, $normalized);
+    $stmt->execute();
+    $linked = $stmt->affected_rows;
+    $stmt->close();
+    return max(0, $linked);
 }
 
 function customerLogin(mysqli $conn, string $identifier, string $password): array

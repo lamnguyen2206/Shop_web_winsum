@@ -35,7 +35,7 @@
             <div class="footer-copy">
                 © Bản quyền thuộc về 
                 <a href="<?php echo e(app_url('home')); ?>">Winsum Home</a> |
-                <a href="<?php echo e(app_url('catalog')); ?>">Sản phẩm</a>
+                <a href="<?php echo e(app_url('.')); ?>">Thiết kế bởi WS</a>
             </div>
         </div>
     </footer>

@@ -13,11 +13,6 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
 
     <div class="admin-page-head">
         <h1>Bảng quản trị Winsum Home</h1>
-        <form method="post" class="admin-inline-form">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="admin_logout">
-            <button type="submit" class="btn-secondary">Đăng xuất</button>
-        </form>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>
@@ -29,9 +24,14 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
             <small><?php echo (int) $stats['orders_pending']; ?> đang chờ xử lý</small>
         </article>
         <article class="admin-stat-card">
-            <span class="admin-stat-label">Doanh thu (ước tính)</span>
+            <span class="admin-stat-label">Doanh thu đã thu</span>
+            <strong class="admin-stat-value"><?php echo number_format($stats['revenue_paid'], 0, ',', '.'); ?>đ</strong>
+            <small>Đơn đã thanh toán (paid)</small>
+        </article>
+        <article class="admin-stat-card">
+            <span class="admin-stat-label">Giá trị đơn (ước tính)</span>
             <strong class="admin-stat-value"><?php echo number_format($stats['revenue_total'], 0, ',', '.'); ?>đ</strong>
-            <small>Trừ đơn hủy/trả</small>
+            <small>Trừ hủy/trả, chưa lọc thanh toán</small>
         </article>
         <article class="admin-stat-card">
             <span class="admin-stat-label">Sản phẩm</span>

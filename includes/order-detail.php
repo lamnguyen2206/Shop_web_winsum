@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '/customer-auth.php';
 require_once __DIR__ . '/order-repository.php';
+require_once __DIR__ . '/csrf.php';
 
 $currentCustomer = customerCurrent($conn);
 $orderCode = trim((string) ($_GET['code'] ?? ''));
+$detailNotice = trim((string) ($_GET['msg'] ?? ''));
+$detailSuccess = isset($_GET['ok']) && (string) $_GET['ok'] === '1';
 $order = null;
 
 if ($currentCustomer && $orderCode !== '') {
@@ -17,12 +20,12 @@ if ($currentCustomer && $orderCode !== '') {
 
     <?php if (!$currentCustomer): ?>
         <div class="empty-state">
-            <p>Bạn cần đăng nhập để xem chi tiết đơn hàng.</p>
+            <p>Bạn cần đăng nhập để xem chi tiết đơn hàng trong tài khoản.</p>
             <?php
             $loginParams = $orderCode !== '' ? ['code' => $orderCode] : [];
             $loginReturnView = $orderCode !== '' ? 'order-detail' : 'orders';
             ?>
-            <a class="btn-secondary" href="<?php echo e(auth_login_url($loginReturnView, $loginParams)); ?>">Đăng nhập ngay</a>
+            <a class="btn-secondary" href="<?php echo e(auth_login_url($loginReturnView, $loginParams)); ?>">Đăng nhập</a>
         </div>
     <?php elseif (!$order): ?>
         <div class="empty-state">
@@ -30,6 +33,10 @@ if ($currentCustomer && $orderCode !== '') {
             <a class="btn-secondary" href="<?php echo e(app_url('orders')); ?>">Quay lại danh sách đơn</a>
         </div>
     <?php else: ?>
+        <?php if ($detailNotice !== ''): ?>
+            <p class="checkout-notice <?php echo $detailSuccess ? 'success' : 'error'; ?>"><?php echo htmlspecialchars($detailNotice); ?></p>
+        <?php endif; ?>
+        <?php $canCancel = orderCanCustomerCancel($order); ?>
         <div class="order-detail-grid">
             <article class="order-card">
                 <h2>Thông tin đơn #<?php echo htmlspecialchars($order['order_code']); ?></h2>
@@ -77,5 +84,14 @@ if ($currentCustomer && $orderCode !== '') {
             <div class="summary-line"><span>Giảm giá</span><strong><?php echo number_format((float) $order['discount_amount'], 0, ',', '.'); ?>đ</strong></div>
             <div class="summary-line total"><span>Thành tiền</span><strong><?php echo number_format((float) $order['grand_total'], 0, ',', '.'); ?>đ</strong></div>
         </aside>
+
+        <?php if ($canCancel): ?>
+            <form method="post" action="<?php echo e(app_url('order-detail', ['code' => $order['order_code']])); ?>" class="order-cancel-form" onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="cancel_order">
+                <input type="hidden" name="order_code" value="<?php echo htmlspecialchars($order['order_code']); ?>">
+                <button type="submit" class="btn-secondary btn-cancel-order">Hủy đơn hàng</button>
+            </form>
+        <?php endif; ?>
     <?php endif; ?>
 </section>

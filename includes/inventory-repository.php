@@ -164,18 +164,19 @@ function inventoryValidateCartItems(mysqli $conn, array $cartItems): array
  * Trừ tồn kho khi đặt hàng thành công (gọi trong transaction).
  * SP trạng thái in_stock: trừ kho; hết kho → preorder + cảnh báo admin.
  *
- * @return array<int, array<string, mixed>> Danh sách cảnh báo đã tạo
+ * @return array{alerts: array<int, array<string, mixed>>, any_deducted: bool}
  */
 function inventoryDeductForOrder(mysqli $conn, array $cartItems, int $orderId, string $orderCode): array
 {
     inventoryEnsureAlertsTable($conn);
     $warehouseId = inventoryGetDefaultWarehouseId($conn);
     if ($warehouseId <= 0) {
-        return [];
+        return ['alerts' => [], 'any_deducted' => false];
     }
 
     $need = inventoryAggregateCartQty($cartItems);
     $createdAlerts = [];
+    $anyDeducted = false;
 
     $stmtLock = $conn->prepare('SELECT ii.id, ii.quantity_on_hand, p.stock_status, p.name
                                 FROM inventory_items ii
@@ -188,8 +189,9 @@ function inventoryDeductForOrder(mysqli $conn, array $cartItems, int $orderId, s
     $stmtUpdateProduct = $conn->prepare("UPDATE products SET stock_status = 'preorder', updated_at = NOW() WHERE id = ?");
     $stmtAlert = $conn->prepare("INSERT INTO inventory_alerts (product_id, order_id, message, alert_type)
                                  VALUES (?, ?, ?, 'stock_depleted')");
+    $stmtMarkLine = $conn->prepare('UPDATE order_items SET stock_deducted = 1 WHERE order_id = ? AND product_id = ?');
 
-    if (!$stmtLock || !$stmtUpdateInv || !$stmtUpdateProduct || !$stmtAlert) {
+    if (!$stmtLock || !$stmtUpdateInv || !$stmtUpdateProduct || !$stmtAlert || !$stmtMarkLine) {
         throw new RuntimeException('Không thể cập nhật tồn kho.');
     }
 
@@ -241,8 +243,95 @@ function inventoryDeductForOrder(mysqli $conn, array $cartItems, int $orderId, s
     $stmtUpdateInv->close();
     $stmtUpdateProduct->close();
     $stmtAlert->close();
+    $stmtMarkLine->close();
 
-    return $createdAlerts;
+    return ['alerts' => $createdAlerts, 'any_deducted' => $anyDeducted];
+}
+
+/**
+ * Hoàn tồn kho khi hủy/trả đơn (chỉ dòng đã trừ kho, một lần duy nhất).
+ */
+function inventoryRestockForOrder(mysqli $conn, int $orderId): bool
+{
+    require_once __DIR__ . '/order-repository.php';
+    orderEnsureSchema($conn);
+
+    $stmtOrder = $conn->prepare('SELECT inventory_deducted, inventory_restocked FROM orders WHERE id = ? LIMIT 1 FOR UPDATE');
+    if (!$stmtOrder) {
+        return false;
+    }
+    $stmtOrder->bind_param('i', $orderId);
+    $stmtOrder->execute();
+    $orderRow = $stmtOrder->get_result()->fetch_assoc();
+    $stmtOrder->close();
+    if (!$orderRow || (int) $orderRow['inventory_deducted'] !== 1 || (int) $orderRow['inventory_restocked'] === 1) {
+        return false;
+    }
+
+    $warehouseId = inventoryGetDefaultWarehouseId($conn);
+    if ($warehouseId <= 0) {
+        return false;
+    }
+
+    $stmtLines = $conn->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ? AND stock_deducted = 1 AND product_id IS NOT NULL');
+    if (!$stmtLines) {
+        return false;
+    }
+    $stmtLines->bind_param('i', $orderId);
+    $stmtLines->execute();
+    $linesResult = $stmtLines->get_result();
+    $lines = [];
+    while ($row = $linesResult->fetch_assoc()) {
+        $lines[] = $row;
+    }
+    $stmtLines->close();
+    if ($lines === []) {
+        return false;
+    }
+
+    $stmtLock = $conn->prepare('SELECT id, quantity_on_hand FROM inventory_items
+                                WHERE product_id = ? AND warehouse_id = ? AND variant_id IS NULL
+                                FOR UPDATE');
+    $stmtUpdateInv = $conn->prepare('UPDATE inventory_items SET quantity_on_hand = ?, updated_at = NOW() WHERE id = ?');
+    $stmtRestoreProduct = $conn->prepare("UPDATE products SET stock_status = 'in_stock', updated_at = NOW()
+                                          WHERE id = ? AND stock_status = 'preorder'");
+    $stmtClearLine = $conn->prepare('UPDATE order_items SET stock_deducted = 0 WHERE order_id = ? AND product_id = ?');
+    $stmtMarkRestocked = $conn->prepare('UPDATE orders SET inventory_restocked = 1, updated_at = NOW() WHERE id = ?');
+
+    if (!$stmtLock || !$stmtUpdateInv || !$stmtRestoreProduct || !$stmtClearLine || !$stmtMarkRestocked) {
+        return false;
+    }
+
+    foreach ($lines as $line) {
+        $productId = (int) $line['product_id'];
+        $qty = (int) $line['quantity'];
+        $stmtLock->bind_param('ii', $productId, $warehouseId);
+        $stmtLock->execute();
+        $inv = $stmtLock->get_result()->fetch_assoc();
+        $stmtLock->free_result();
+        if (!$inv) {
+            continue;
+        }
+        $newQty = (int) $inv['quantity_on_hand'] + $qty;
+        $invId = (int) $inv['id'];
+        $stmtUpdateInv->bind_param('ii', $newQty, $invId);
+        $stmtUpdateInv->execute();
+        $stmtRestoreProduct->bind_param('i', $productId);
+        $stmtRestoreProduct->execute();
+        $stmtClearLine->bind_param('ii', $orderId, $productId);
+        $stmtClearLine->execute();
+    }
+
+    $stmtMarkRestocked->bind_param('i', $orderId);
+    $stmtMarkRestocked->execute();
+
+    $stmtLock->close();
+    $stmtUpdateInv->close();
+    $stmtRestoreProduct->close();
+    $stmtClearLine->close();
+    $stmtMarkRestocked->close();
+
+    return true;
 }
 
 function inventoryGetUnreadAlerts(mysqli $conn, int $limit = 20): array

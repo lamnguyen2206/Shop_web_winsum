@@ -6,6 +6,12 @@ function productFormatPrice(float $amount): string
     return number_format($amount, 0, ',', '.') . 'đ';
 }
 
+/** Số sản phẩm chủ lực đề xuất trên trang chủ và trong quản trị. */
+function productFeaturedHomeLimit(): int
+{
+    return 5;
+}
+
 function productStockStatusLabel(string $status): string
 {
     $map = [
@@ -408,8 +414,9 @@ function productGetById(mysqli $conn, int $id): ?array
  *
  * @return array<int, array<string, mixed>>
  */
-function productGetBestSellers(mysqli $conn, int $limit = 6): array
+function productGetBestSellers(mysqli $conn, ?int $limit = null): array
 {
+    $limit = $limit ?? productFeaturedHomeLimit();
     $limit = max(1, min(24, $limit));
     $sql = "SELECT p.id, p.slug, p.name, p.base_price, p.is_featured,
                    c.name AS category_name,
@@ -423,12 +430,14 @@ function productGetBestSellers(mysqli $conn, int $limit = 6): array
                 FROM order_items oi
                 INNER JOIN orders o ON o.id = oi.order_id
                 WHERE oi.product_id IS NOT NULL
+                  AND o.ordered_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                   AND o.status NOT IN ('cancelled', 'returned')
                   AND o.fulfillment_status NOT IN ('cancelled', 'returned')
                 GROUP BY oi.product_id
             ) sales ON sales.product_id = p.id
             WHERE p.is_active = 1
               AND (p.published_at IS NULL OR p.published_at <= NOW())
+            HAVING units_sold > 0
             ORDER BY units_sold DESC, p.is_featured DESC, p.published_at DESC, p.id DESC
             LIMIT " . (int) $limit;
 
@@ -439,9 +448,6 @@ function productGetBestSellers(mysqli $conn, int $limit = 6): array
 
     $items = [];
     while ($row = $result->fetch_assoc()) {
-        if ((int) $row['units_sold'] <= 0) {
-            continue;
-        }
         $items[] = [
             'id' => (int) $row['id'],
             'slug' => $row['slug'],

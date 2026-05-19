@@ -105,9 +105,10 @@ function homeGetNewsPosts(mysqli $conn, int $limit = 2): array
 /**
  * Sản phẩm chủ lực: ưu tiên theo số lượng đã mua, không đủ thì lấy is_featured.
  */
-function homeGetBestsellerProducts(mysqli $conn, int $limit = 6): array
+function homeGetBestsellerProducts(mysqli $conn, ?int $limit = null): array
 {
     require_once __DIR__ . '/product-repository.php';
+    $limit = $limit ?? productFeaturedHomeLimit();
     $fromSales = productGetBestSellers($conn, $limit);
     if ($fromSales !== []) {
         return $fromSales;

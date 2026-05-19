@@ -29,7 +29,31 @@ function storefrontHandlePost(mysqli $conn, string $view): void
     }
     if ($view === 'account') {
         storefrontHandleAccountPost($conn);
+        return;
     }
+    if ($view === 'order-detail') {
+        storefrontHandleOrderDetailPost($conn);
+    }
+}
+
+function storefrontHandleOrderDetailPost(mysqli $conn): void
+{
+    if (($_POST['action'] ?? '') !== 'cancel_order') {
+        return;
+    }
+
+    require_once __DIR__ . '/order-repository.php';
+    require_once __DIR__ . '/customer-auth.php';
+    require_once __DIR__ . '/csrf.php';
+
+    $code = trim((string) ($_POST['order_code'] ?? ''));
+    $customer = customerCurrent($conn);
+    if (!$customer || !csrfValidate()) {
+        redirect(app_url('orders'));
+    }
+
+    $result = orderCustomerCancelForAccount($conn, (int) $customer['id'], $code);
+    redirect(app_url('order-detail', ['code' => $code, 'msg' => $result['message'], 'ok' => $result['ok'] ? '1' : '0']));
 }
 
 function storefrontHandleCartPost(mysqli $conn): void
@@ -74,6 +98,10 @@ function storefrontHandleCartPost(mysqli $conn): void
             $success = true;
         } elseif ($action === 'apply_coupon') {
             $coupon = strtoupper(trim((string) ($_POST['coupon_code'] ?? '')));
+            $guestCouponPhone = trim((string) ($_POST['guest_coupon_phone'] ?? ''));
+            if ($guestCouponPhone !== '') {
+                $_SESSION['guest_coupon_phone'] = $guestCouponPhone;
+            }
             if ($coupon === '') {
                 cartSetCoupon(null);
                 $notice = 'Đã xóa mã giảm giá.';
@@ -85,10 +113,14 @@ function storefrontHandleCartPost(mysqli $conn): void
                 foreach ($items as $item) {
                     $subtotal += ((int) $item['price']) * ((int) $item['qty']);
                 }
-                $validation = couponValidate($conn, $coupon, (float) $subtotal, $customerId);
+                $validation = couponValidate($conn, $coupon, (float) $subtotal, $customerId, $guestCouponPhone);
                 cartSetCoupon($validation['ok'] ? $validation['coupon'] : null);
                 $notice = $validation['message'];
                 $success = $validation['ok'];
+                if ($validation['ok'] && !$customerId && $guestCouponPhone !== '') {
+                    require_once __DIR__ . '/coupon-repository.php';
+                    couponMarkSessionCartApply((int) $validation['coupon']['id'], $guestCouponPhone);
+                }
             }
         }
     }
@@ -312,6 +344,12 @@ function storefrontHandleCheckoutPost(mysqli $conn): void
                             $couponId
                         );
                         cartClear();
+                        $_SESSION['last_order_code'] = $orderCode;
+                        $_SESSION['last_order_phone'] = $customerPhone;
+                        if ($couponId) {
+                            require_once __DIR__ . '/coupon-repository.php';
+                            couponRecordSessionOrderUseForPhone((int) $couponId, $customerPhone);
+                        }
                         unset($_SESSION['checkout_shipping_method_id'], $_SESSION['checkout_payment_method_id']);
                         if ($shippingMethods !== []) {
                             $_SESSION['selected_shipping_fee'] = (int) $shippingMethods[0]['fee'];

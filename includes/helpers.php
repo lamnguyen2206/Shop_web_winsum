@@ -32,3 +32,9 @@ function auth_register_url(string $returnView = 'home', array $params = []): str
     $params['auth'] = 'register';
     return app_url($returnView, $params);
 }
+
+/** Chuẩn hóa SĐT để so khớp đơn hàng / mã giảm giá. */
+function phoneNormalize(string $phone): string
+{
+    return preg_replace('/\D+/', '', trim($phone)) ?? '';
+}

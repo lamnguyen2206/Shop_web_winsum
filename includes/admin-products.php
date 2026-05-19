@@ -8,8 +8,6 @@ $editId = (int) ($_GET['edit'] ?? 0);
 $editing = $editId > 0 ? productAdminGetById($conn, $editId) : null;
 $products = productAdminList($conn);
 $categories = productGetFilterCategories($conn);
-$topSellers = productGetBestSellers($conn, 6);
-$featuredFromSalesLimit = 6;
 $inventoryAlerts = inventoryGetUnreadAlerts($conn, 10);
 
 if (isset($_GET['msg'])) {
@@ -42,11 +40,6 @@ $form = $editing ?: [
 
     <div class="admin-page-head">
         <h1>Quản lý sản phẩm</h1>
-        <form method="post" action="index.php?view=admin-products" class="admin-inline-form">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="admin_logout">
-            <button type="submit" class="btn-secondary">Đăng xuất</button>
-        </form>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>
@@ -115,6 +108,7 @@ $form = $editing ?: [
                 <label class="admin-check">
                     <input type="checkbox" name="is_featured" value="1" <?php echo !empty($form['is_featured']) ? 'checked' : ''; ?>> Sản phẩm nổi bật
                 </label>
+                <p class="admin-field-hint">Trang chủ ưu tiên tối đa 5 SP bán chạy trong 30 ngày; chỉ dùng tick nổi bật khi chưa có đơn hoặc bổ sung thủ công.</p>
                 <label class="admin-check">
                     <input type="checkbox" name="is_active" value="1" <?php echo !isset($form['is_active']) || !empty($form['is_active']) ? 'checked' : ''; ?>> Hiển thị trên web
                 </label>
@@ -153,30 +147,6 @@ $form = $editing ?: [
                 </form>
             </div>
             <?php endif; ?>
-
-            <div class="admin-bestsellers-box">
-                <h2>Đề xuất sản phẩm chủ lực</h2>
-                <p class="admin-hint">Dựa trên tổng số lượng đã bán trong các đơn hàng (không tính đơn hủy/trả).</p>
-                <?php if ($topSellers === []): ?>
-                    <p class="admin-muted">Chưa có đơn hàng — chưa thể đề xuất theo lượt mua.</p>
-                <?php else: ?>
-                    <ol class="admin-top-sellers">
-                        <?php foreach ($topSellers as $i => $ts): ?>
-                            <li>
-                                <span class="admin-rank"><?php echo $i + 1; ?>.</span>
-                                <a href="index.php?view=admin-products&amp;edit=<?php echo (int) $ts['id']; ?>"><?php echo htmlspecialchars($ts['name']); ?></a>
-                                <span class="admin-sold-qty"><?php echo (int) $ts['units_sold']; ?> đã bán</span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ol>
-                    <form method="post" action="index.php?view=admin-products" class="admin-inline-form admin-featured-apply">
-                        <?php echo csrfField(); ?>
-                        <input type="hidden" name="action" value="apply_featured_from_sales">
-                        <input type="hidden" name="featured_limit" value="<?php echo (int) $featuredFromSalesLimit; ?>">
-                        <button type="submit" class="btn-secondary">Áp dụng <?php echo (int) $featuredFromSalesLimit; ?> SP chủ lực lên trang chủ</button>
-                    </form>
-                <?php endif; ?>
-            </div>
 
             <h2>Danh sách sản phẩm</h2>
             <div class="admin-table-wrap">

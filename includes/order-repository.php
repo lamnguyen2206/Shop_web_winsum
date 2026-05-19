@@ -1,5 +1,31 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/helpers.php';
+
+function orderEnsureSchema(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+
+    $orderCols = [
+        'inventory_deducted' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'inventory_restocked' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    ];
+    foreach ($orderCols as $col => $def) {
+        $check = $conn->query("SHOW COLUMNS FROM orders LIKE '" . $conn->real_escape_string($col) . "'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE orders ADD COLUMN {$col} {$def}");
+        }
+    }
+
+    $checkItem = $conn->query("SHOW COLUMNS FROM order_items LIKE 'stock_deducted'");
+    if ($checkItem && $checkItem->num_rows === 0) {
+        $conn->query('ALTER TABLE order_items ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0');
+    }
+}
 
 function orderGetShippingMethods(mysqli $conn): array
 {
@@ -198,7 +224,15 @@ function orderCreateFromCheckout(
         }
 
         require_once __DIR__ . '/inventory-repository.php';
-        inventoryDeductForOrder($conn, $cartItems, $orderId, $orderCode);
+        $deductResult = inventoryDeductForOrder($conn, $cartItems, $orderId, $orderCode);
+        if (!empty($deductResult['any_deducted'])) {
+            $stmtInvFlag = $conn->prepare('UPDATE orders SET inventory_deducted = 1 WHERE id = ?');
+            if ($stmtInvFlag) {
+                $stmtInvFlag->bind_param('i', $orderId);
+                $stmtInvFlag->execute();
+                $stmtInvFlag->close();
+            }
+        }
 
         $conn->commit();
         return $orderCode;
@@ -228,27 +262,10 @@ function orderGetCustomerOrders(mysqli $conn, int $customerId): array
     return $orders;
 }
 
-function orderGetCustomerOrderDetailByCode(mysqli $conn, int $customerId, string $orderCode): ?array
+function orderEnrichOrderDetail(mysqli $conn, array $order): array
 {
-    $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_note,
-                                   subtotal, shipping_fee, discount_amount, grand_total, status, payment_status, fulfillment_status, ordered_at
-                            FROM orders
-                            WHERE customer_id = ?
-                              AND order_code = ?
-                            LIMIT 1");
-    if (!$stmt) {
-        return null;
-    }
-    $stmt->bind_param('is', $customerId, $orderCode);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $order = $result->fetch_assoc();
-    $stmt->close();
-    if (!$order) {
-        return null;
-    }
-
     $orderId = (int) $order['id'];
+
     $stmtItems = $conn->prepare("SELECT product_sku, product_name, product_image, unit_price, quantity, line_total
                                  FROM order_items
                                  WHERE order_id = ?
@@ -299,17 +316,100 @@ function orderGetCustomerOrderDetailByCode(mysqli $conn, int $customerId, string
     return $order;
 }
 
-function orderGetAllOrders(mysqli $conn, int $limit = 50): array
+function orderGetOrderDetailByCode(mysqli $conn, string $orderCode): ?array
 {
-    $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, status, payment_status,
-                                   fulfillment_status, grand_total, ordered_at
-                            FROM orders
-                            ORDER BY id DESC
-                            LIMIT ?");
-    if (!$stmt) {
-        return [];
+    $orderCode = trim($orderCode);
+    if ($orderCode === '') {
+        return null;
     }
-    $stmt->bind_param('i', $limit);
+
+    $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_note,
+                                   subtotal, shipping_fee, discount_amount, grand_total, status, payment_status, fulfillment_status,
+                                   inventory_deducted, inventory_restocked, ordered_at
+                            FROM orders
+                            WHERE order_code = ?
+                            LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('s', $orderCode);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$order) {
+        return null;
+    }
+
+    return orderEnrichOrderDetail($conn, $order);
+}
+
+function orderGetOrderDetailByCodeAndPhone(mysqli $conn, string $orderCode, string $phone): ?array
+{
+    $order = orderGetOrderDetailByCode($conn, $orderCode);
+    if ($order === null) {
+        return null;
+    }
+    if (phoneNormalize((string) $order['customer_phone']) !== phoneNormalize($phone)) {
+        return null;
+    }
+    return $order;
+}
+
+function orderGetCustomerOrderDetailByCode(mysqli $conn, int $customerId, string $orderCode): ?array
+{
+    $orderCode = trim($orderCode);
+    if ($orderCode === '') {
+        return null;
+    }
+
+    $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_note,
+                                   subtotal, shipping_fee, discount_amount, grand_total, status, payment_status, fulfillment_status, ordered_at
+                            FROM orders
+                            WHERE customer_id = ?
+                              AND order_code = ?
+                            LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('is', $customerId, $orderCode);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$order) {
+        return null;
+    }
+
+    return orderEnrichOrderDetail($conn, $order);
+}
+
+function orderGetAllOrders(mysqli $conn, int $limit = 50, string $search = ''): array
+{
+    $search = trim($search);
+    if ($search === '') {
+        $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, status, payment_status,
+                                       fulfillment_status, grand_total, ordered_at
+                                FROM orders
+                                ORDER BY id DESC
+                                LIMIT ?");
+        if (!$stmt) {
+            return [];
+        }
+        $stmt->bind_param('i', $limit);
+    } else {
+        $like = '%' . $search . '%';
+        $stmt = $conn->prepare("SELECT id, order_code, customer_name, customer_phone, status, payment_status,
+                                       fulfillment_status, grand_total, ordered_at
+                                FROM orders
+                                WHERE order_code LIKE ?
+                                   OR customer_name LIKE ?
+                                   OR customer_phone LIKE ?
+                                ORDER BY id DESC
+                                LIMIT ?");
+        if (!$stmt) {
+            return [];
+        }
+        $stmt->bind_param('sssi', $like, $like, $like, $limit);
+    }
     $stmt->execute();
     $result = $stmt->get_result();
     $orders = [];
@@ -320,6 +420,87 @@ function orderGetAllOrders(mysqli $conn, int $limit = 50): array
     return $orders;
 }
 
+function orderShouldRestockForStatus(string $status): bool
+{
+    return in_array($status, ['cancelled', 'returned'], true);
+}
+
+/**
+ * Khách có thể hủy đơn khi chưa bàn giao.
+ */
+function orderCanCustomerCancel(array $order): bool
+{
+    $status = (string) ($order['status'] ?? '');
+    $fulfillment = (string) ($order['fulfillment_status'] ?? '');
+
+    if (in_array($status, ['cancelled', 'returned', 'delivered', 'shipped'], true)) {
+        return false;
+    }
+    if (in_array($fulfillment, ['shipping', 'delivered', 'cancelled'], true)) {
+        return false;
+    }
+
+    return in_array($status, ['pending', 'processing'], true);
+}
+
+/**
+ * @return array{ok:bool,message:string}
+ */
+function orderCustomerCancel(mysqli $conn, int $orderId, string $changedBy = 'customer'): array
+{
+    $stmt = $conn->prepare('SELECT id, status, fulfillment_status FROM orders WHERE id = ? LIMIT 1');
+    if (!$stmt) {
+        return ['ok' => false, 'message' => 'Không tìm thấy đơn hàng.'];
+    }
+    $stmt->bind_param('i', $orderId);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$order) {
+        return ['ok' => false, 'message' => 'Không tìm thấy đơn hàng.'];
+    }
+    if (!orderCanCustomerCancel($order)) {
+        return ['ok' => false, 'message' => 'Đơn hàng không thể hủy ở trạng thái hiện tại.'];
+    }
+    if (!orderUpdateStatus($conn, $orderId, 'cancelled', $changedBy)) {
+        return ['ok' => false, 'message' => 'Không thể hủy đơn hàng. Vui lòng thử lại.'];
+    }
+    return ['ok' => true, 'message' => 'Đã hủy đơn hàng thành công.'];
+}
+
+/**
+ * @return array{ok:bool,message:string}
+ */
+function orderCustomerCancelByCodeAndPhone(mysqli $conn, string $orderCode, string $phone): array
+{
+    $order = orderGetOrderDetailByCodeAndPhone($conn, $orderCode, $phone);
+    if (!$order) {
+        return ['ok' => false, 'message' => 'Thông tin đơn hàng hoặc số điện thoại không chính xác.'];
+    }
+    return orderCustomerCancel($conn, (int) $order['id'], 'customer');
+}
+
+/**
+ * @return array{ok:bool,message:string}
+ */
+function orderCustomerCancelForAccount(mysqli $conn, int $customerId, string $orderCode): array
+{
+    $order = orderGetCustomerOrderDetailByCode($conn, $customerId, $orderCode);
+    if (!$order) {
+        return ['ok' => false, 'message' => 'Không tìm thấy đơn hàng.'];
+    }
+    return orderCustomerCancel($conn, (int) $order['id'], 'customer');
+}
+
+function orderMaybeRestockInventory(mysqli $conn, int $orderId): void
+{
+    if ($orderId <= 0) {
+        return;
+    }
+    require_once __DIR__ . '/inventory-repository.php';
+    inventoryRestockForOrder($conn, $orderId);
+}
+
 function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string $changedBy = 'admin'): bool
 {
     $allowed = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'];
@@ -327,7 +508,7 @@ function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string
         return false;
     }
 
-    $stmtCurrent = $conn->prepare("SELECT status FROM orders WHERE id = ? LIMIT 1");
+    $stmtCurrent = $conn->prepare('SELECT status, fulfillment_status FROM orders WHERE id = ? LIMIT 1');
     if (!$stmtCurrent) {
         return false;
     }
@@ -340,14 +521,20 @@ function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string
     }
 
     $fromStatus = (string) $current['status'];
-    $fulfillment = $newStatus;
-    if ($newStatus === 'cancelled' || $newStatus === 'returned') {
-        $fulfillment = $newStatus;
+    $fulfillment = (string) $current['fulfillment_status'];
+    if ($newStatus === 'cancelled') {
+        $fulfillment = 'cancelled';
+    } elseif ($newStatus === 'returned') {
+        $fulfillment = $fulfillment === 'cancelled' ? 'cancelled' : $fulfillment;
+    } elseif (in_array($newStatus, ['shipped', 'delivered'], true)) {
+        $fulfillment = $newStatus === 'delivered' ? 'delivered' : 'shipping';
+    } elseif (in_array($newStatus, ['pending', 'processing', 'packed'], true)) {
+        $fulfillment = 'pending';
     }
 
     $conn->begin_transaction();
     try {
-        $stmt = $conn->prepare("UPDATE orders SET status = ?, fulfillment_status = ?, updated_at = NOW() WHERE id = ?");
+        $stmt = $conn->prepare('UPDATE orders SET status = ?, fulfillment_status = ?, updated_at = NOW() WHERE id = ?');
         if (!$stmt) {
             throw new RuntimeException('Không cập nhật được trạng thái đơn.');
         }
@@ -356,11 +543,116 @@ function orderUpdateStatus(mysqli $conn, int $orderId, string $newStatus, string
         $stmt->close();
 
         $stmtHistory = $conn->prepare("INSERT INTO order_status_histories (order_id, from_status, to_status, note, changed_by)
-                                       VALUES (?, ?, ?, 'Cập nhật từ trang quản trị', ?)");
+                                       VALUES (?, ?, ?, 'Cập nhật trạng thái đơn từ quản trị', ?)");
         if ($stmtHistory) {
             $stmtHistory->bind_param('isss', $orderId, $fromStatus, $newStatus, $changedBy);
             $stmtHistory->execute();
             $stmtHistory->close();
+        }
+
+        if (orderShouldRestockForStatus($newStatus)) {
+            orderMaybeRestockInventory($conn, $orderId);
+        }
+
+        $conn->commit();
+        return true;
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return false;
+    }
+}
+
+function orderUpdatePaymentStatus(mysqli $conn, int $orderId, string $newStatus, string $changedBy = 'admin'): bool
+{
+    $allowed = ['unpaid', 'paid', 'failed', 'refunded'];
+    if (!in_array($newStatus, $allowed, true)) {
+        return false;
+    }
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare('UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE id = ?');
+        if (!$stmt) {
+            throw new RuntimeException('Không cập nhật trạng thái thanh toán.');
+        }
+        $stmt->bind_param('si', $newStatus, $orderId);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmtPay = $conn->prepare('UPDATE order_payments SET status = ? WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+        if ($stmtPay) {
+            $payStatus = $newStatus === 'paid' ? 'paid' : ($newStatus === 'refunded' ? 'refunded' : 'pending');
+            $stmtPay->bind_param('si', $payStatus, $orderId);
+            $stmtPay->execute();
+            $stmtPay->close();
+        }
+        if ($newStatus === 'paid') {
+            $paidAt = date('Y-m-d H:i:s');
+            $stmtPaid = $conn->prepare('UPDATE order_payments SET paid_at = ? WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+            if ($stmtPaid) {
+                $stmtPaid->bind_param('si', $paidAt, $orderId);
+                $stmtPaid->execute();
+                $stmtPaid->close();
+            }
+        }
+
+        $stmtHistory = $conn->prepare("INSERT INTO order_status_histories (order_id, from_status, to_status, note, changed_by)
+                                       VALUES (?, NULL, ?, ?, ?)");
+        if ($stmtHistory) {
+            $note = 'Cập nhật thanh toán: ' . $newStatus;
+            $stmtHistory->bind_param('isss', $orderId, $newStatus, $note, $changedBy);
+            $stmtHistory->execute();
+            $stmtHistory->close();
+        }
+
+        $conn->commit();
+        return true;
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return false;
+    }
+}
+
+function orderUpdateFulfillmentStatus(mysqli $conn, int $orderId, string $newStatus, string $changedBy = 'admin'): bool
+{
+    $allowed = ['pending', 'shipping', 'delivered', 'cancelled'];
+    if (!in_array($newStatus, $allowed, true)) {
+        return false;
+    }
+
+    $stmtCurrent = $conn->prepare('SELECT fulfillment_status FROM orders WHERE id = ? LIMIT 1');
+    if (!$stmtCurrent) {
+        return false;
+    }
+    $stmtCurrent->bind_param('i', $orderId);
+    $stmtCurrent->execute();
+    $current = $stmtCurrent->get_result()->fetch_assoc();
+    $stmtCurrent->close();
+    if (!$current) {
+        return false;
+    }
+    $fromStatus = (string) $current['fulfillment_status'];
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare('UPDATE orders SET fulfillment_status = ?, updated_at = NOW() WHERE id = ?');
+        if (!$stmt) {
+            throw new RuntimeException('Không cập nhật trạng thái giao hàng.');
+        }
+        $stmt->bind_param('si', $newStatus, $orderId);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmtHistory = $conn->prepare("INSERT INTO order_status_histories (order_id, from_status, to_status, note, changed_by)
+                                       VALUES (?, ?, ?, 'Cập nhật giao hàng từ quản trị', ?)");
+        if ($stmtHistory) {
+            $stmtHistory->bind_param('isss', $orderId, $fromStatus, $newStatus, $changedBy);
+            $stmtHistory->execute();
+            $stmtHistory->close();
+        }
+
+        if ($newStatus === 'cancelled') {
+            orderMaybeRestockInventory($conn, $orderId);
         }
 
         $conn->commit();
@@ -400,12 +692,32 @@ function orderFulfillmentStatusLabel(string $status): string
 {
     return match ($status) {
         'pending' => 'Chờ giao hàng',
-        'processing' => 'Đang chuẩn bị',
-        'packed' => 'Đã đóng gói',
-        'shipped' => 'Đang vận chuyển',
+        'processing', 'packed' => 'Đang chuẩn bị',
+        'shipping', 'shipped' => 'Đang giao hàng',
         'delivered' => 'Đã giao hàng',
-        'cancelled' => 'Đã hủy',
+        'cancelled' => 'Đã hủy giao',
         'returned' => 'Đã hoàn trả',
         default => $status,
     };
+}
+
+function orderShippingStatusOptions(): array
+{
+    return ['pending', 'shipping', 'delivered', 'cancelled'];
+}
+
+/** Chuẩn hóa fulfillment DB cũ sang nhóm trạng thái giao hàng admin. */
+function orderFulfillmentToShippingKey(string $fulfillment): string
+{
+    return match ($fulfillment) {
+        'shipping', 'shipped', 'processing', 'packed' => 'shipping',
+        'delivered' => 'delivered',
+        'cancelled', 'returned' => 'cancelled',
+        default => 'pending',
+    };
+}
+
+function orderPaymentStatusOptions(): array
+{
+    return ['unpaid', 'paid', 'refunded'];
 }

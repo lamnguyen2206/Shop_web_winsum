@@ -70,12 +70,18 @@ $checkoutCanSubmit = !$checkoutBlockedAdmin
     <?php endif; ?>
 
     <?php if ($orderPlaced): ?>
+        <?php
+        $registerPhone = trim((string) ($_SESSION['last_order_phone'] ?? ''));
+        $registerParams = $registerPhone !== '' ? ['phone' => $registerPhone] : [];
+        ?>
         <div class="checkout-success-box">
             <p>Cảm ơn bạn! Đơn hàng đã được ghi nhận.</p>
             <?php if ($currentCustomer): ?>
                 <a class="btn-secondary" href="<?php echo e(app_url('orders')); ?>">Xem đơn hàng của tôi</a>
             <?php else: ?>
-                <a class="btn-secondary" href="<?php echo e(auth_login_url('orders')); ?>">Đăng nhập để xem đơn hàng</a>
+                <p class="checkout-guest-register-hint">Đăng ký để gắn các đơn trước đó (cùng SĐT) vào tài khoản.</p>
+                <a class="btn-secondary" href="<?php echo e(auth_register_url('account', $registerParams)); ?>">Đăng ký tài khoản</a>
+                <a class="read-more" href="<?php echo e(auth_login_url('orders')); ?>">Đã có tài khoản? Đăng nhập</a>
             <?php endif; ?>
             <a class="read-more" href="<?php echo e(app_url('catalog')); ?>">Tiếp tục mua sắm</a>
         </div>

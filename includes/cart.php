@@ -9,6 +9,11 @@ $customerId = $currentCustomer ? (int) $currentCustomer['id'] : null;
 
 cartSyncPricesFromDb($conn);
 $cartItems = cartGetItems();
+$stockLabels = [
+    'in_stock' => 'Còn hàng',
+    'out_of_stock' => 'Hết hàng',
+    'preorder' => 'Đặt trước',
+];
 $totals = cartCalculateTotals($cartItems, $conn, $customerId);
 ?>
 
@@ -46,6 +51,13 @@ $totals = cartCalculateTotals($cartItems, $conn, $customerId);
                                     <div>
                                         <h3><?php echo htmlspecialchars($item['name']); ?></h3>
                                         <p>Mã sản phẩm: <?php echo htmlspecialchars($item['sku']); ?></p>
+                                        <?php
+                                        $itemStock = (string) ($item['stock_status'] ?? 'in_stock');
+                                        if ($itemStock === 'preorder'): ?>
+                                            <span class="cart-preorder-badge">Đặt trước — không trừ kho</span>
+                                        <?php elseif (isset($stockLabels[$itemStock])): ?>
+                                            <span class="cart-stock-badge cart-stock-badge--<?php echo htmlspecialchars($itemStock); ?>"><?php echo htmlspecialchars($stockLabels[$itemStock]); ?></span>
+                                        <?php endif; ?>
                                         <button class="remove-item-btn" type="submit" form="remove-<?php echo htmlspecialchars($item['id']); ?>">Xóa</button>
                                     </div>
                                 </div>
@@ -99,6 +111,11 @@ $totals = cartCalculateTotals($cartItems, $conn, $customerId);
             <form method="post" action="index.php?view=cart" class="coupon-form">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="apply_coupon">
+                <?php if (!$currentCustomer): ?>
+                    <label for="guest_coupon_phone">SĐT (kiểm tra giới hạn mã)</label>
+                    <input id="guest_coupon_phone" type="text" name="guest_coupon_phone" placeholder="Số điện thoại của bạn"
+                           value="<?php echo htmlspecialchars((string) ($_SESSION['guest_coupon_phone'] ?? '')); ?>">
+                <?php endif; ?>
                 <input type="text" name="coupon_code" placeholder="Nhập mã giảm giá" value="<?php echo htmlspecialchars($_SESSION['cart_coupon'] ?? ''); ?>">
                 <button type="submit">Áp dụng</button>
             </form>
