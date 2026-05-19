@@ -247,6 +247,17 @@
     min-width: 0;
 }
 
+.price-row input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.price-row input[type="number"]::-webkit-outer-spin-button,
+.price-row input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 .price-row > div {
     display: flex;
     flex-direction: column;
