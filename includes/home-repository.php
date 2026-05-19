@@ -29,28 +29,13 @@ function homeGetHeroBanner(mysqli $conn, string $position = 'home_hero'): ?array
     return $banner;
 }
 
-function homeGetFeaturedCategories(mysqli $conn, int $limit = 3): array
+function homeGetFeaturedCategories(mysqli $conn, ?int $limit = null): array
 {
-    $stmt = $conn->prepare("SELECT name, description
-                            FROM categories
-                            WHERE is_active = 1
-                            ORDER BY sort_order ASC, id ASC
-                            LIMIT ?");
-    if (!$stmt) {
-        return [];
+    require_once __DIR__ . '/product-repository.php';
+    $categories = productGetLampCategories($conn);
+    if ($limit !== null && $limit > 0) {
+        $categories = array_slice($categories, 0, $limit);
     }
-    $stmt->bind_param('i', $limit);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $categories = [];
-    while ($row = $result->fetch_assoc()) {
-        $categories[] = [
-            'name' => $row['name'],
-            'description' => $row['description'] ?: 'Khám phá các sản phẩm được tuyển chọn cho không gian sống hiện đại.'
-        ];
-    }
-    $stmt->close();
     return $categories;
 }
 

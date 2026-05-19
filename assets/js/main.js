@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', function() {
+    var navCategorySelect = document.querySelector('[data-nav-category-select]');
+    if (navCategorySelect) {
+        var catalogBaseUrl = navCategorySelect.getAttribute('data-catalog-url') || 'index.php?view=catalog';
+
+        navCategorySelect.addEventListener('change', function() {
+            var slug = navCategorySelect.value;
+            var target = catalogBaseUrl;
+            if (slug !== '') {
+                var joiner = catalogBaseUrl.indexOf('?') >= 0 ? '&' : '?';
+                target = catalogBaseUrl + joiner + 'category=' + encodeURIComponent(slug);
+            }
+            navCategorySelect.value = '';
+            window.location.href = target;
+        });
+    }
+
     function formatVnd(value) {
         return Number(value).toLocaleString('vi-VN') + 'đ';
     }

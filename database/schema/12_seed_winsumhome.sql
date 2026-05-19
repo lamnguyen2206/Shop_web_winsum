@@ -4,16 +4,17 @@ INSERT INTO brands (name, slug, description, is_active)
 VALUES ('Winsum Home', 'winsum-home', 'Nội thất và chiếu sáng cao cấp', 1)
 ON DUPLICATE KEY UPDATE description = VALUES(description), is_active = VALUES(is_active);
 
-INSERT INTO categories (name, slug, sort_order, is_active)
+INSERT INTO categories (name, slug, description, sort_order, is_active)
 VALUES
-('ĐÈN THẢ TRẦN', 'den-tha-tran', 1, 1),
-('ĐÈN TƯỜNG', 'den-tuong', 2, 1),
-('ĐÈN BÀN', 'den-ban', 3, 1),
-('ĐÈN SÀN', 'den-san', 4, 1),
-('ĐÈN CHÙM', 'den-chum', 5, 1),
-('KỆ TRANG TRÍ', 'ke-trang-tri', 6, 1)
+('ĐÈN THẢ TRẦN', 'den-tha-tran', 'Đèn treo trần, phù hợp phòng khách, phòng ăn và không gian rộng.', 1, 1),
+('ĐÈN TƯỜNG', 'den-tuong', 'Đèn tường trang trí, tạo điểm nhấn hành lang và khu vực sinh hoạt.', 2, 1),
+('ĐÈN BÀN', 'den-ban', 'Đèn bàn làm việc, đọc sách và trang trí bàn trà, bàn làm việc.', 3, 1),
+('ĐÈN SÀN', 'den-san', 'Đèn sàn đứng, chiếu sáng góc sofa hoặc khu tiếp khách.', 4, 1),
+('ĐÈN CHÙM', 'den-chum', 'Đèn chùm cao cấp, làm điểm nhấn cho phòng khách sang trọng.', 5, 1),
+('KỆ TRANG TRÍ', 'ke-trang-tri', 'Kệ và phụ kiện trang trí bổ sung cho không gian nội thất.', 6, 1)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
+    description = VALUES(description),
     sort_order = VALUES(sort_order),
     is_active = VALUES(is_active);
 

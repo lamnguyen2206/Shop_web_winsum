@@ -2,6 +2,16 @@
     <div class="site-search-backdrop" data-site-search-close tabindex="-1"></div>
     <div class="site-search-panel" role="dialog" aria-modal="true" aria-labelledby="site-search-title">
         <p id="site-search-title" class="visually-hidden">Tìm kiếm sản phẩm</p>
+        <?php if (!empty($navMenuCategories)): ?>
+            <div class="site-search-lamp-types" aria-label="Danh mục">
+                <span class="site-search-lamp-types__label">Danh mục:</span>
+                <div class="site-search-lamp-types__list">
+                    <?php foreach ($navMenuCategories as $navCat): ?>
+                        <a href="<?php echo e(app_url('catalog', ['category' => $navCat['slug']])); ?>"><?php echo htmlspecialchars($navCat['nav_label']); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
         <form class="site-search-form" action="index.php" method="get" role="search" data-site-search-form>
             <input type="hidden" name="view" value="catalog">
             <div class="site-search-input-wrap">

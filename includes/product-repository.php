@@ -36,6 +36,98 @@ function productGetFilterCategories(mysqli $conn): array
     return $categories;
 }
 
+/** Mô tả ngắn mặc định theo slug danh mục đèn. */
+function productCategoryDefaultDescription(string $slug): string
+{
+    $map = [
+        'den-tha-tran' => 'Đèn treo trần, phù hợp phòng khách, phòng ăn và không gian rộng.',
+        'den-tuong' => 'Đèn tường trang trí, tạo điểm nhấn hành lang và khu vực sinh hoạt.',
+        'den-ban' => 'Đèn bàn làm việc, đọc sách và trang trí bàn trà, bàn làm việc.',
+        'den-san' => 'Đèn sàn đứng, chiếu sáng góc sofa hoặc khu tiếp khách.',
+        'den-chum' => 'Đèn chùm cao cấp, làm điểm nhấn cho phòng khách sang trọng.',
+        'ke-trang-tri' => 'Kệ và phụ kiện trang trí bổ sung cho không gian nội thất.',
+    ];
+
+    return $map[$slug] ?? 'Khám phá sản phẩm được tuyển chọn từ Winsum Home.';
+}
+
+/** Danh mục catalog kèm số lượng sản phẩm đang bán. */
+function productGetCatalogCategories(mysqli $conn): array
+{
+    $sql = "SELECT c.id, c.name, c.slug, c.description, c.sort_order,
+                   COUNT(p.id) AS product_count
+            FROM categories c
+            LEFT JOIN products p ON p.category_id = c.id
+                AND p.is_active = 1
+                AND (p.published_at IS NULL OR p.published_at <= NOW())
+            WHERE c.is_active = 1
+            GROUP BY c.id, c.name, c.slug, c.description, c.sort_order
+            ORDER BY c.sort_order ASC, c.name ASC";
+    $result = $conn->query($sql);
+    if (!$result) {
+        return [];
+    }
+
+    $categories = [];
+    while ($row = $result->fetch_assoc()) {
+        $slug = (string) $row['slug'];
+        $description = trim((string) ($row['description'] ?? ''));
+        $categories[] = [
+            'id' => (int) $row['id'],
+            'name' => (string) $row['name'],
+            'slug' => $slug,
+            'description' => $description !== '' ? $description : productCategoryDefaultDescription($slug),
+            'product_count' => (int) $row['product_count'],
+        ];
+    }
+    return $categories;
+}
+
+/** Chỉ các danh mục loại đèn (slug bắt đầu bằng den-). */
+function productGetLampCategories(mysqli $conn): array
+{
+    return array_values(array_filter(
+        productGetCatalogCategories($conn),
+        static fn(array $cat): bool => str_starts_with($cat['slug'], 'den-')
+    ));
+}
+
+/** Tên hiển thị menu (title case) theo slug danh mục. */
+function productCategoryNavLabel(string $slug, string $fallbackName): string
+{
+    $map = [
+        'den-ban' => 'Đèn bàn',
+        'den-san' => 'Đèn sàn',
+        'den-tha-tran' => 'Đèn thả trần',
+        'den-tuong' => 'Đèn tường',
+        'den-chum' => 'Đèn chùm',
+        'ke-trang-tri' => 'Kệ trang trí',
+    ];
+
+    return $map[$slug] ?? $fallbackName;
+}
+
+/** Danh mục cho menu header (thứ tự cố định, gồm kệ trang trí). */
+function productGetNavMenuCategories(mysqli $conn): array
+{
+    $order = ['den-ban', 'den-san', 'den-tha-tran', 'den-tuong', 'den-chum', 'ke-trang-tri'];
+    $bySlug = [];
+    foreach (productGetCatalogCategories($conn) as $cat) {
+        $bySlug[$cat['slug']] = $cat;
+    }
+
+    $items = [];
+    foreach ($order as $slug) {
+        if (!isset($bySlug[$slug])) {
+            continue;
+        }
+        $cat = $bySlug[$slug];
+        $cat['nav_label'] = productCategoryNavLabel($slug, $cat['name']);
+        $items[] = $cat;
+    }
+    return $items;
+}
+
 function productGetFilterBrands(mysqli $conn): array
 {
     $result = $conn->query("SELECT id, name, slug FROM brands WHERE is_active = 1 ORDER BY name ASC");

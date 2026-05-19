@@ -2,7 +2,7 @@
 require __DIR__ . '/home-repository.php';
 
 $heroBanner = homeGetHeroBanner($conn);
-$featuredCategories = homeGetFeaturedCategories($conn, 3);
+$featuredCategories = homeGetFeaturedCategories($conn);
 $bestsellerProducts = homeGetBestsellerProducts($conn);
 $newsPosts = homeGetNewsPosts($conn, 2);
 ?>
@@ -41,23 +41,28 @@ $newsPosts = homeGetNewsPosts($conn, 2);
         </div>
     </section>
 
-    <section class="home-section container">
+    <section class="home-section container home-lamp-types">
         <div class="section-head">
-            <h2>Our Category</h2>
-            <a href="<?php echo e(app_url('catalog')); ?>">Xem tất cả</a>
+            <h2>Phân loại loại đèn</h2>
+            <a href="<?php echo e(app_url('catalog')); ?>">Xem tất cả sản phẩm</a>
         </div>
-        <div class="category-grid">
+        <p class="home-section-note">Chọn loại đèn phù hợp không gian — từ trần, tường, bàn đến sàn và chùm.</p>
+        <div class="category-grid category-grid--lamp-types">
             <?php if (empty($featuredCategories)): ?>
                 <article class="category-card placeholder-card">
-                    <h3>Khung danh mục Winsum</h3>
-                    <p>Thêm dữ liệu danh mục từ bảng <strong>categories</strong>.</p>
+                    <h3>Chưa có danh mục đèn</h3>
+                    <p>Thêm dữ liệu trong bảng <strong>categories</strong> (slug bắt đầu bằng <code>den-</code>).</p>
                 </article>
             <?php else: ?>
                 <?php foreach ($featuredCategories as $category): ?>
-                    <article class="category-card">
-                        <h3><?php echo htmlspecialchars($category['name']); ?></h3>
+                    <a class="category-card category-card--link" href="<?php echo e(app_url('catalog', ['category' => $category['slug']])); ?>">
+                        <h3><?php echo htmlspecialchars(productCategoryNavLabel($category['slug'], $category['name'])); ?></h3>
                         <p><?php echo htmlspecialchars($category['description']); ?></p>
-                    </article>
+                        <?php if (!empty($category['product_count'])): ?>
+                            <span class="category-card__count"><?php echo (int) $category['product_count']; ?> sản phẩm</span>
+                        <?php endif; ?>
+                        <span class="category-card__cta">Xem danh mục</span>
+                    </a>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>

@@ -35,6 +35,45 @@ body.site-search-open {
   overflow: hidden;
 }
 
+.site-search-lamp-types {
+  padding: 12px 14px 0;
+  border-bottom: 1px solid #2d3239;
+}
+
+.site-search-lamp-types__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.site-search-lamp-types__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.site-search-lamp-types__list a {
+  padding: 6px 12px;
+  border: 1px solid #374151;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.site-search-lamp-types__list a:hover {
+  border-color: var(--color-accent);
+  background: rgba(47, 93, 63, 0.2);
+  color: #fff;
+}
+
 .site-search-input-wrap {
   display: flex;
   align-items: center;

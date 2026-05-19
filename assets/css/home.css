@@ -279,6 +279,48 @@
   line-height: var(--leading-normal);
 }
 
+.category-grid--lamp-types {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.category-card--link {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  min-height: 160px;
+}
+
+.category-card--link:hover {
+  border-color: var(--color-accent);
+}
+
+.category-card__count {
+  display: inline-block;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.category-card__cta {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.category-card--link:hover .category-card__cta {
+  color: var(--color-accent);
+}
+
+.home-lamp-types .home-section-note {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

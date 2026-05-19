@@ -9,8 +9,6 @@ $catalogAdminNoShop = !customerMayShopOnStorefront($catalogCustomer);
 
 $filters = productBuildFiltersFromRequest();
 $categories = productGetFilterCategories($conn);
-$colors = productGetFilterColorOptions($conn);
-$priceRange = productGetAvailablePriceRange($conn);
 $perPage = 9;
 $currentPage = max(1, (int) ($_GET['page'] ?? 1));
 $totalProducts = productCountSearchProducts($conn, $filters);
@@ -23,7 +21,7 @@ $products = productSearchProducts($conn, $filters, $perPage, $offset);
 
 $filterLabels = [
     'q' => 'Từ khóa',
-    'category' => 'Danh mục',
+    'category' => 'Loại đèn',
     'color' => 'Màu sắc',
     'min_price' => 'Giá từ',
     'max_price' => 'Giá đến',
@@ -113,78 +111,42 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
     <?php endif; ?>
 
     <div class="catalog-layout">
-        <aside class="filter-panel">
-            <h2>Bộ lọc</h2>
-            <p class="filter-panel-hint">Dùng biểu tượng kính lúp trên thanh menu để tìm sản phẩm.</p>
-            <form method="get" action="index.php" class="filter-form">
-                <input type="hidden" name="view" value="catalog">
-                <?php if (($filters['q'] ?? '') !== ''): ?>
-                    <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q']); ?>">
-                <?php endif; ?>
-
-                <fieldset class="filter-group filter-group--first">
-                    <legend>Thuộc tính</legend>
-                    <label for="category">Danh mục</label>
-                    <select id="category" name="category">
-                        <option value="">Tất cả</option>
-                        <?php foreach ($categories as $category): ?>
-                            <option value="<?php echo htmlspecialchars($category['slug']); ?>" <?php echo $filters['category'] === $category['slug'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($category['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <label for="color">Màu sắc</label>
-                    <select id="color" name="color">
-                        <option value="">Tất cả</option>
-                        <?php foreach ($colors as $color): ?>
-                            <option value="<?php echo htmlspecialchars($color); ?>" <?php echo $filters['color'] === $color ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($color); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </fieldset>
-
-                <fieldset class="filter-group">
-                    <legend>Khoảng giá</legend>
-                    <div class="price-row">
-                        <div>
-                            <label for="min_price">Giá từ</label>
-                            <input id="min_price" type="number" min="0" name="min_price" value="<?php echo $filters['min_price'] > 0 ? (int) $filters['min_price'] : ''; ?>" placeholder="<?php echo (int) $priceRange['min']; ?>">
-                        </div>
-                        <div>
-                            <label for="max_price">Đến</label>
-                            <input id="max_price" type="number" min="0" name="max_price" value="<?php echo $filters['max_price'] > 0 ? (int) $filters['max_price'] : ''; ?>" placeholder="<?php echo (int) $priceRange['max']; ?>">
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset class="filter-group">
-                    <legend>Sắp xếp</legend>
-                    <label for="sort">Thứ tự hiển thị</label>
-                    <select id="sort" name="sort">
+        <div class="catalog-results">
+            <div class="catalog-results-head">
+                <p class="catalog-results-count">
+                    Tìm thấy <strong><?php echo (int) $totalProducts; ?></strong> sản phẩm
+                    <?php if (($filters['q'] ?? '') !== ''): ?>
+                        cho “<?php echo htmlspecialchars($filters['q']); ?>”
+                    <?php endif; ?>
+                </p>
+                <form method="get" action="index.php" class="catalog-sort-form">
+                    <input type="hidden" name="view" value="catalog">
+                    <?php if (($filters['q'] ?? '') !== ''): ?>
+                        <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q']); ?>">
+                    <?php endif; ?>
+                    <?php if (($filters['category'] ?? '') !== ''): ?>
+                        <input type="hidden" name="category" value="<?php echo htmlspecialchars($filters['category']); ?>">
+                    <?php endif; ?>
+                    <?php if (($filters['color'] ?? '') !== ''): ?>
+                        <input type="hidden" name="color" value="<?php echo htmlspecialchars($filters['color']); ?>">
+                    <?php endif; ?>
+                    <?php if ($filters['min_price'] > 0): ?>
+                        <input type="hidden" name="min_price" value="<?php echo (int) $filters['min_price']; ?>">
+                    <?php endif; ?>
+                    <?php if ($filters['max_price'] > 0): ?>
+                        <input type="hidden" name="max_price" value="<?php echo (int) $filters['max_price']; ?>">
+                    <?php endif; ?>
+                    <label class="catalog-sort-form__label" for="catalog-sort">Sắp xếp</label>
+                    <select id="catalog-sort" name="sort" class="catalog-sort-form__select" onchange="this.form.submit()">
                         <option value="featured" <?php echo $filters['sort'] === 'featured' ? 'selected' : ''; ?>>Nổi bật</option>
                         <option value="latest" <?php echo $filters['sort'] === 'latest' ? 'selected' : ''; ?>>Mới nhất</option>
                         <option value="price_asc" <?php echo $filters['sort'] === 'price_asc' ? 'selected' : ''; ?>>Giá tăng dần</option>
                         <option value="price_desc" <?php echo $filters['sort'] === 'price_desc' ? 'selected' : ''; ?>>Giá giảm dần</option>
                         <option value="name_asc" <?php echo $filters['sort'] === 'name_asc' ? 'selected' : ''; ?>>Tên A-Z</option>
                     </select>
-                </fieldset>
-
-                <button type="submit">Áp dụng bộ lọc</button>
-            </form>
-        </aside>
-
-        <div class="catalog-results">
-            <div class="catalog-results-head">
-                <p>
-                    Tìm thấy <strong><?php echo (int) $totalProducts; ?></strong> sản phẩm
-                    <?php if (($filters['q'] ?? '') !== ''): ?>
-                        cho “<?php echo htmlspecialchars($filters['q']); ?>”
-                    <?php endif; ?>
-                </p>
+                </form>
                 <?php if (!empty($activeFilters)): ?>
-                    <a class="clear-all-filters" href="<?php echo e(app_url('catalog')); ?>">Xóa tất cả bộ lọc</a>
+                    <a class="clear-all-filters catalog-results-clear" href="<?php echo e(app_url('catalog')); ?>">Xóa tất cả bộ lọc</a>
                 <?php endif; ?>
             </div>
             <?php if (empty($products)): ?>
@@ -200,13 +162,14 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
                                 <span class="catalog-image-overlay">Xem chi tiết</span>
                             </a>
                             <div class="catalog-content">
-                                <p class="catalog-category"><?php echo htmlspecialchars($product['category_name']); ?> · <?php echo htmlspecialchars($product['brand_name']); ?></p>
-                                <h3><a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug']); ?>"><?php echo htmlspecialchars($product['name']); ?></a></h3>
-                                <p class="catalog-price"><?php echo htmlspecialchars($product['price_label']); ?></p>
-                                <p class="catalog-stock">Tình trạng: <strong><?php echo htmlspecialchars(productStockStatusLabel($product['stock_status'])); ?></strong></p>
-                                <p class="catalog-desc"><?php echo htmlspecialchars($product['short_description']); ?></p>
+                                <div class="catalog-card-body">
+                                    <p class="catalog-category"><?php echo htmlspecialchars($product['category_name']); ?> · <?php echo htmlspecialchars($product['brand_name']); ?></p>
+                                    <h3><a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug']); ?>"><?php echo htmlspecialchars($product['name']); ?></a></h3>
+                                    <p class="catalog-price"><?php echo htmlspecialchars($product['price_label']); ?></p>
+                                    <p class="catalog-stock">Tình trạng: <strong><?php echo htmlspecialchars(productStockStatusLabel($product['stock_status'])); ?></strong></p>
+                                    <p class="catalog-desc"><?php echo htmlspecialchars($product['short_description']); ?></p>
+                                </div>
                                 <div class="catalog-actions<?php echo $catalogAdminNoShop ? ' catalog-actions--single' : ''; ?>">
-                                    <a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug']); ?>" class="btn-secondary">Xem chi tiết</a>
                                     <?php if (!$catalogAdminNoShop): ?>
                                     <form method="post" action="<?php echo htmlspecialchars(catalogBuildUrl($filters, $currentPage)); ?>">
                                         <?php echo csrfField(); ?>
@@ -218,6 +181,7 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
                                         </button>
                                     </form>
                                     <?php endif; ?>
+                                    <a href="index.php?view=product&amp;slug=<?php echo urlencode($product['slug']); ?>" class="btn-secondary catalog-actions__detail">Xem chi tiết</a>
                                 </div>
                             </div>
                         </article>

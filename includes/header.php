@@ -2,8 +2,12 @@
 require_once __DIR__ . '/cart-store.php';
 require_once __DIR__ . '/admin-auth.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/product-repository.php';
 
 $view = isset($_GET['view']) ? (string) $_GET['view'] : 'home';
+$navMenuCategories = productGetNavMenuCategories($conn);
+$navCatalogCategory = trim((string) ($_GET['category'] ?? ''));
+$isCatalogView = $view === 'catalog' || $view === 'product';
 $cartCount = cartCountItems();
 $isAdmin = adminCurrent();
 ?><header class="site-header">
@@ -15,7 +19,28 @@ $isAdmin = adminCurrent();
         <nav class="main-nav">
             <ul>
                 <li><a class="<?php echo ($view === 'home') ? 'active' : ''; ?>" href="<?php echo e(app_url('home')); ?>">Trang chủ</a></li>
-                <li><a class="<?php echo ($view === 'catalog' || $view === 'product') ? 'active' : ''; ?>" href="<?php echo e(app_url('catalog')); ?>">Sản phẩm</a></li>
+                <li>
+                    <a class="<?php echo ($isCatalogView && $navCatalogCategory === '') ? 'active' : ''; ?>" href="<?php echo e(app_url('catalog')); ?>">Tất cả sản phẩm</a>
+                </li>
+                <?php if (!empty($navMenuCategories)): ?>
+                <li class="nav-category-select-item">
+                    <div class="nav-category-select-wrap">
+                        <label class="visually-hidden" for="nav-category-select">Danh mục</label>
+                        <select
+                            id="nav-category-select"
+                            class="nav-category-select"
+                            data-nav-category-select
+                            data-catalog-url="<?php echo e(app_url('catalog')); ?>"
+                            aria-label="Chọn danh mục sản phẩm"
+                        >
+                            <option value="" selected>Danh mục</option>
+                            <?php foreach ($navMenuCategories as $navCat): ?>
+                                <option value="<?php echo e($navCat['slug']); ?>"><?php echo htmlspecialchars($navCat['nav_label']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </li>
+                <?php endif; ?>
                 <li><a class="<?php echo ($view === 'blog' || $view === 'post') ? 'active' : ''; ?>" href="<?php echo e(app_url('blog')); ?>">Blog</a></li>
                 <?php if (!$isAdmin): ?>
                 <li><a class="<?php echo ($view === 'orders' || $view === 'order-detail') ? 'active' : ''; ?>" href="<?php echo e(app_url('orders')); ?>">Đơn hàng</a></li>
