@@ -31,8 +31,9 @@
 
 .cart-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
     gap: 26px;
+    align-items: start;
 }
 
 .cart-table {
@@ -165,6 +166,9 @@
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     height: fit-content;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     background: var(--color-surface);
     box-shadow: var(--shadow-soft);
 }
@@ -227,26 +231,55 @@
 }
 
 .coupon-form {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
     margin-top: 10px;
+    box-sizing: border-box;
 }
 
-.coupon-form input {
+.coupon-form__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.coupon-form__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
+.coupon-form__input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     height: 40px;
+    box-sizing: border-box;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     padding: 0 10px;
+    font: inherit;
+    font-size: var(--text-sm);
 }
 
-.coupon-form button {
+.coupon-form__btn {
+    flex-shrink: 0;
     height: 40px;
+    box-sizing: border-box;
     border: 1px solid #111827;
     border-radius: 8px;
     padding: 0 12px;
     background: #ffffff;
     cursor: pointer;
+    font: inherit;
+    font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 .cart-empty {

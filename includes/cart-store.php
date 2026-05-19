@@ -159,8 +159,7 @@ function cartCalculateTotals(array $items, ?mysqli $conn = null, ?int $customerI
 
     if ($couponCode !== '' && $conn instanceof mysqli) {
         require_once __DIR__ . '/coupon-repository.php';
-        $guestPhone = (string) ($_SESSION['guest_coupon_phone'] ?? '');
-        $validation = couponValidate($conn, $couponCode, (float) $subtotal, $customerId, $guestPhone);
+        $validation = couponValidate($conn, $couponCode, (float) $subtotal, $customerId);
         if ($validation['ok']) {
             $discount = couponCalculateDiscount($validation['coupon'], (float) $subtotal, (float) $shipping);
         } else {
