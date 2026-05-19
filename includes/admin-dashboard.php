@@ -51,6 +51,7 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
         <article class="admin-stat-card">
             <span class="admin-stat-label">Khách hàng</span>
             <strong class="admin-stat-value"><?php echo (int) $stats['customers_total']; ?></strong>
+            <small><a href="index.php?view=admin-customers">Quản lý khách hàng →</a></small>
         </article>
         <article class="admin-stat-card admin-stat-card--alert">
             <span class="admin-stat-label">Đánh giá chờ duyệt</span>
@@ -67,19 +68,8 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
     </div>
 
     <div class="admin-dashboard-panels">
-        <div class="admin-panel">
-            <h2>Truy cập nhanh</h2>
-            <div class="admin-quick-links">
-                <a href="index.php?view=admin-orders">Quản lý đơn hàng</a>
-                <a href="index.php?view=admin-products">CRUD sản phẩm</a>
-                <a href="index.php?view=admin-reviews">Duyệt đánh giá</a>
-                <a href="index.php?view=blog-editor">Soạn bài blog</a>
-                <a href="index.php?view=catalog" target="_blank" rel="noopener">Xem cửa hàng</a>
-            </div>
-        </div>
-
         <?php if ($inventoryAlerts !== []): ?>
-        <div class="admin-panel admin-panel-wide admin-inventory-alerts">
+        <div class="admin-panel admin-dashboard-panel--full admin-inventory-alerts">
             <h2>Cảnh báo hết tồn kho → Đặt trước</h2>
             <ul class="admin-alert-list">
                 <?php foreach ($inventoryAlerts as $alert): ?>
@@ -93,8 +83,11 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
         </div>
         <?php endif; ?>
 
-        <div class="admin-panel admin-panel-wide">
-            <h2>Đơn hàng mới nhất</h2>
+        <div class="admin-panel admin-dashboard-panel--full admin-dashboard-recent-orders">
+            <div class="admin-dashboard-panel-head">
+                <h2>Đơn hàng mới nhất</h2>
+                <a class="admin-dashboard-panel-link" href="index.php?view=admin-orders">Xem tất cả đơn hàng →</a>
+            </div>
             <?php if (empty($recentOrders)): ?>
                 <p class="empty-state">Chưa có đơn hàng.</p>
             <?php else: ?>
@@ -122,7 +115,6 @@ $inventoryAlerts = inventoryGetUnreadAlerts($conn, 5);
                         </tbody>
                     </table>
                 </div>
-                <p style="margin-top:12px;"><a href="index.php?view=admin-orders">Xem tất cả đơn hàng →</a></p>
             <?php endif; ?>
         </div>
     </div>

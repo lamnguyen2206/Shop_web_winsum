@@ -8,8 +8,10 @@ require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/customer-auth.php';
 require_once __DIR__ . '/includes/customer-auth-post.php';
 require_once __DIR__ . '/includes/admin-auth.php';
+require_once __DIR__ . '/includes/inventory-repository.php';
 
 customerBootstrapAdminAccount($conn);
+inventoryEnsureAlertsTable($conn);
 customerAuthHandlePost($conn);
 
 $authFlash = customerAuthConsumeFlash();
@@ -22,6 +24,21 @@ $isAdmin = adminCurrent();
 $storefrontGuest = !$currentCustomer && !$isAdmin;
 
 $view = isset($_GET['view']) ? (string) $_GET['view'] : 'home';
+
+if ($view === 'admin-login') {
+    if ($isAdmin) {
+        header('Location: index.php?view=admin-dashboard');
+        exit;
+    }
+    $_SESSION['auth_flash'] = [
+        'message' => 'Đăng nhập quản trị: dùng admin / admin123 tại form Đăng nhập trên trang chủ.',
+        'success' => false,
+        'open' => 'login',
+        'prefill' => ['identifier' => 'admin'],
+    ];
+    header('Location: index.php?view=home');
+    exit;
+}
 $pageTitle = 'Winsum Home | Nội thất và chiếu sáng cao cấp';
 
 $pageTitles = [
@@ -35,9 +52,9 @@ $pageTitles = [
     'account' => 'Tài khoản | Winsum Home',
     'orders' => 'Đơn hàng của tôi | Winsum Home',
     'order-detail' => 'Chi tiết đơn hàng | Winsum Home',
-    'admin-login' => 'Đăng nhập quản trị | Winsum Home',
     'admin-dashboard' => 'Bảng quản trị | Winsum Home',
     'admin-orders' => 'Quản trị đơn hàng | Winsum Home',
+    'admin-customers' => 'Quản lý khách hàng | Winsum Home',
     'admin-products' => 'Quản trị sản phẩm | Winsum Home',
     'admin-reviews' => 'Quản trị đánh giá | Winsum Home',
 ];
@@ -58,17 +75,17 @@ $viewFiles = [
     'account' => 'includes/account.php',
     'orders' => 'includes/my-orders.php',
     'order-detail' => 'includes/order-detail.php',
-    'admin-login' => 'includes/admin-login.php',
     'admin-dashboard' => 'includes/admin-dashboard.php',
     'admin-orders' => 'includes/admin-orders.php',
+    'admin-customers' => 'includes/admin-customers.php',
     'admin-products' => 'includes/admin-products.php',
     'admin-reviews' => 'includes/admin-reviews.php',
 ];
 
 $includeFile = $viewFiles[$view] ?? $viewFiles['home'];
 
-$extraStyles = ['assets/css/site-search.css'];
-$extraScripts = ['assets/js/auth-forms.js', 'assets/js/site-search.js'];
+$extraStyles = ['assets/css/site-search.css', 'assets/css/auth-toast.css'];
+$extraScripts = ['assets/js/auth-forms.js', 'assets/js/site-search.js', 'assets/js/auth-toast.js'];
 
 if ($view === 'product') {
     $extraStyles[] = 'assets/css/product-detail.css';
@@ -79,12 +96,21 @@ if ($view === 'checkout') {
     $extraScripts[] = 'assets/js/checkout.js';
 }
 
-if ($storefrontGuest || $view === 'admin-login') {
+if ($storefrontGuest) {
     $extraStyles[] = 'assets/css/auth-forms.css';
 }
 
 if (str_starts_with($view, 'admin') || $view === 'blog-editor') {
     $extraStyles[] = 'assets/css/admin.css';
+}
+
+if ($view === 'blog-editor') {
+    $extraStyles[] = 'assets/css/blog-editor.css';
+    $extraScripts[] = 'assets/js/blog-editor.js';
+}
+
+if ($view === 'admin-customers') {
+    $extraScripts[] = 'assets/js/admin-customers.js';
 }
 ?>
 <!DOCTYPE html>
@@ -116,9 +142,9 @@ echo $bodyAttr !== [] ? ' ' . implode(' ', $bodyAttr) : '';
     <?php include 'includes/header.php'; ?>
 
     <main>
-        <?php if ($authMessage !== '' && $view !== 'home'): ?>
+        <?php if ($authMessage !== '' && !$authSuccess && $view !== 'home'): ?>
             <div class="container auth-page-flash" role="status">
-                <p class="auth-notice <?php echo $authSuccess ? 'auth-notice--ok' : 'auth-notice--err'; ?>">
+                <p class="auth-notice auth-notice--err">
                     <?php echo htmlspecialchars($authMessage); ?>
                 </p>
             </div>
@@ -131,6 +157,10 @@ echo $bodyAttr !== [] ? ' ' . implode(' ', $bodyAttr) : '';
     } ?>
 
     <?php include 'includes/footer.php'; ?>
+
+    <?php if ($authMessage !== ''): ?>
+        <?php include __DIR__ . '/includes/auth-toast.php'; ?>
+    <?php endif; ?>
 
     <script src="assets/js/main.js"></script>
     <?php foreach ($extraScripts as $scriptSrc): ?>

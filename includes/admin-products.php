@@ -150,14 +150,12 @@ $form = $editing ?: [
                 <label>Mô tả chi tiết
                     <textarea name="description" rows="5"><?php echo htmlspecialchars((string) ($form['description'] ?? '')); ?></textarea>
                 </label>
-                <div class="admin-form-row">
-                    <label>Chất liệu
-                        <input type="text" name="material" value="<?php echo htmlspecialchars((string) ($form['material'] ?? '')); ?>">
-                    </label>
-                    <label>Màu sắc
-                        <input type="text" name="color" value="<?php echo htmlspecialchars((string) ($form['color'] ?? '')); ?>">
-                    </label>
-                </div>
+                <label>Chất liệu
+                    <input type="text" name="material" value="<?php echo htmlspecialchars((string) ($form['material'] ?? '')); ?>">
+                </label>
+                <label>Màu sắc
+                    <input type="text" name="color" value="<?php echo htmlspecialchars((string) ($form['color'] ?? '')); ?>">
+                </label>
                 <label>Bảo hành (tháng)
                     <input type="number" name="warranty_months" min="0" value="<?php echo htmlspecialchars((string) ($form['warranty_months'] ?? '')); ?>">
                 </label>

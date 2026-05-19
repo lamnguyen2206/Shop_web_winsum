@@ -17,16 +17,14 @@
 mysql -u root -p < database/winsumhome_schema.sql
 ```
 
-Nếu DB đã tạo trước đó, chạy thêm:
+Nếu DB đã tạo trước đó (thiếu bảng cảnh báo tồn kho):
 
 ```bash
 mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
-mysql -u root -p winsumweb < database/schema/14_seed_inventory.sql
-mysql -u root -p winsumweb < database/schema/15_customer_role_admin.sql
 ```
 
 3. Cấu hình `config/database.php` (mẫu: `config/database.example.php`), database `winsumweb`.
-4. Mở: `http://localhost/webfinal/index.php` (lần đầu tự tạo tài khoản admin trong DB nếu chưa có).
+4. Mở: `http://localhost/webfinal/index.php` (admin + tồn kho mẫu nằm trong `12_seed_winsumhome.sql`; DB cũ có thể tự bổ sung admin khi tải trang).
 
 ## Tài khoản demo
 
@@ -53,6 +51,7 @@ mysql -u root -p winsumweb < database/schema/15_customer_role_admin.sql
 ### Quản trị (sau khi đăng nhập admin)
 - **Tổng quan** — `?view=admin-dashboard` (thống kê, đơn mới, liên kết nhanh)
 - **Đơn hàng** — `?view=admin-orders`
+- **Khách hàng** — `?view=admin-customers` (tìm kiếm, trạng thái, đơn hàng)
 - **Sản phẩm (CRUD)** — `?view=admin-products` (số lượng tồn, cảnh báo hết hàng)
 - **Đánh giá** — `?view=admin-reviews`
 - **Soạn blog** — `?view=blog-editor`
@@ -70,9 +69,9 @@ mysql -u root -p winsumweb < database/schema/15_customer_role_admin.sql
 | `cart` / `checkout` | Giỏ hàng / Thanh toán |
 | `account` / `orders` | Tài khoản / Đơn hàng |
 | `blog` / `post` | Tin tức |
-| `admin-login` | Chuyển về trang chủ (đăng nhập chung) |
 | `admin-dashboard` | Bảng điều khiển |
 | `admin-orders` | Quản lý đơn |
+| `admin-customers` | Quản lý khách hàng |
 | `admin-products` | CRUD sản phẩm |
 | `admin-reviews` | Duyệt đánh giá |
 | `blog-editor` | Soạn blog |
@@ -80,7 +79,7 @@ mysql -u root -p winsumweb < database/schema/15_customer_role_admin.sql
 ## Cấu trúc thư mục
 
 ```
-config/                 Cấu hình DB & admin
+config/                 Cấu hình database
 database/schema/        Script SQL
 includes/               PHP (repository, views)
   product-detail.php    Trang chi tiết SP

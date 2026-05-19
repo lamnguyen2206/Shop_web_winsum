@@ -26,8 +26,6 @@ $newsPosts = homeGetNewsPosts($conn, 2);
         </div>
     </section>
 
-    <?php include __DIR__ . '/home-auth-section.php'; ?>
-
     <section class="home-promo container">
         <article class="promo-coupon">
             <h3>XIN CHAO</h3>

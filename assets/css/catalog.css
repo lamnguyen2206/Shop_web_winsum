@@ -93,13 +93,13 @@
     background: #f9fafb;
 }
 
-/* Trang catalog: tỷ lệ % — chỉnh --catalog-sidebar-pct / --catalog-gap-pct nếu cần */
+/* Trang catalog: sidebar ~22%, lưới sản phẩm ~76% (còn lại sau gap) */
 .catalog-page {
-    --catalog-sidebar-pct: 28%;
+    --catalog-sidebar-pct: 22%;
     --catalog-main-fr: 1fr;
-    --catalog-col-gap-pct: 2.5%;
+    --catalog-col-gap-pct: 2%;
     --catalog-grid-cols: 3;
-    --catalog-card-gap-pct: 2%;
+    --catalog-card-gap-pct: 2.5%;
 }
 
 .catalog-layout {
@@ -293,7 +293,7 @@
 }
 
 .catalog-results {
-    padding: 2.5% 3%;
+    padding: 2% 2.5%;
     flex: 1;
     min-width: 0;
     width: 100%;
@@ -391,54 +391,6 @@
 .catalog-image:focus-visible .catalog-image-overlay {
     opacity: 1;
     transform: translateY(0);
-}
-
-/* Khối quản trị trong sidebar catalog (chỉ admin) */
-.filter-admin-panel {
-    margin-bottom: var(--space-5);
-    padding-bottom: var(--space-5);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.filter-admin-title {
-    font-size: var(--text-lg);
-    font-weight: 700;
-    margin: 0 0 var(--space-2);
-    color: var(--color-text);
-}
-
-.filter-admin-user {
-    margin: 0 0 var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-}
-
-.filter-admin-nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.filter-admin-nav a {
-    display: block;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--color-text);
-    background: var(--color-surface-muted);
-    border: 1px solid var(--color-border);
-    text-decoration: none;
-    transition:
-        background var(--duration-fast),
-        border-color var(--duration-fast),
-        color var(--duration-fast);
-}
-
-.filter-admin-nav a:hover {
-    background: var(--color-accent-soft);
-    border-color: var(--color-accent);
-    color: var(--color-accent);
 }
 
 .catalog-content {

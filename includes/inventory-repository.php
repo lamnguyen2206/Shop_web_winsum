@@ -1,6 +1,33 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 
+/**
+ * Tạo bảng inventory_alerts nếu DB cũ chưa chạy schema/13 (tránh lỗi khi vào trang admin).
+ */
+function inventoryEnsureAlertsTable(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+
+    $conn->query(
+        'CREATE TABLE IF NOT EXISTS inventory_alerts (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            product_id BIGINT NOT NULL,
+            order_id BIGINT DEFAULT NULL,
+            message TEXT NOT NULL,
+            alert_type VARCHAR(30) NOT NULL DEFAULT \'stock_depleted\',
+            is_read TINYINT(1) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_inventory_alerts_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            CONSTRAINT fk_inventory_alerts_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+            INDEX idx_inventory_alerts_unread (is_read, created_at)
+        )'
+    );
+}
+
 function inventoryGetDefaultWarehouseId(mysqli $conn): int
 {
     static $cached = null;
@@ -141,6 +168,7 @@ function inventoryValidateCartItems(mysqli $conn, array $cartItems): array
  */
 function inventoryDeductForOrder(mysqli $conn, array $cartItems, int $orderId, string $orderCode): array
 {
+    inventoryEnsureAlertsTable($conn);
     $warehouseId = inventoryGetDefaultWarehouseId($conn);
     if ($warehouseId <= 0) {
         return [];
@@ -219,6 +247,7 @@ function inventoryDeductForOrder(mysqli $conn, array $cartItems, int $orderId, s
 
 function inventoryGetUnreadAlerts(mysqli $conn, int $limit = 20): array
 {
+    inventoryEnsureAlertsTable($conn);
     $stmt = $conn->prepare("SELECT a.id, a.product_id, a.order_id, a.message, a.created_at,
                                    p.name AS product_name, p.slug AS product_slug,
                                    o.order_code
@@ -244,6 +273,7 @@ function inventoryGetUnreadAlerts(mysqli $conn, int $limit = 20): array
 
 function inventoryCountUnreadAlerts(mysqli $conn): int
 {
+    inventoryEnsureAlertsTable($conn);
     $result = $conn->query('SELECT COUNT(*) AS c FROM inventory_alerts WHERE is_read = 0');
     if (!$result) {
         return 0;
@@ -254,6 +284,7 @@ function inventoryCountUnreadAlerts(mysqli $conn): int
 
 function inventoryMarkAlertRead(mysqli $conn, int $alertId): bool
 {
+    inventoryEnsureAlertsTable($conn);
     $stmt = $conn->prepare('UPDATE inventory_alerts SET is_read = 1 WHERE id = ?');
     if (!$stmt) {
         return false;
@@ -266,6 +297,7 @@ function inventoryMarkAlertRead(mysqli $conn, int $alertId): bool
 
 function inventoryMarkAllAlertsRead(mysqli $conn): bool
 {
+    inventoryEnsureAlertsTable($conn);
     return (bool) $conn->query('UPDATE inventory_alerts SET is_read = 1 WHERE is_read = 0');
 }
 

@@ -1,20 +1,4 @@
 /* Form đăng nhập / đăng ký */
-.home-auth-section {
-  padding: var(--space-8) 0;
-  background: linear-gradient(
-    180deg,
-    var(--color-header-bg) 0%,
-    #1e252e 6%,
-    var(--color-page-bg) 6%,
-    var(--color-page-bg) 100%
-  );
-}
-
-.home-auth-section .container {
-  scroll-margin-top: 100px;
-  max-width: 920px;
-}
-
 .auth-card {
   background: linear-gradient(165deg, #2e2a28 0%, #252220 50%, #1f1c1a 100%);
   border-radius: var(--radius-xl);
@@ -176,81 +160,6 @@
   background: #fef2f2;
   color: #991b1b;
   border: 1px solid #fecaca;
-}
-
-.auth-welcome-card {
-  max-width: 560px;
-  margin: 0 auto;
-  background: linear-gradient(165deg, #2e2a28 0%, #252220 100%);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8) var(--space-6);
-  color: #f9fafb;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--shadow-lg);
-}
-
-.auth-welcome-card h2 {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  letter-spacing: var(--tracking-tight);
-}
-
-.auth-welcome-card p {
-  color: #d1d5db;
-  margin-bottom: var(--space-5);
-  font-size: var(--text-sm);
-}
-
-.auth-welcome-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  justify-content: center;
-}
-
-.auth-welcome-actions a,
-.auth-welcome-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 var(--space-5);
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  text-decoration: none;
-  border: none;
-  font-family: inherit;
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
-}
-
-.auth-welcome-actions a {
-  background: var(--color-accent);
-  color: #fff;
-}
-
-.auth-welcome-actions a:hover {
-  background: var(--color-accent-hover);
-}
-
-.auth-welcome-actions .btn-outline {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  color: #f9fafb;
-}
-
-.auth-welcome-actions .btn-outline:hover {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.auth-welcome-actions form {
-  display: inline;
 }
 
 .auth-page-single {

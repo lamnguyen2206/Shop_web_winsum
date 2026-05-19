@@ -3,10 +3,7 @@ require_once __DIR__ . '/product-repository.php';
 require_once __DIR__ . '/cart-store.php';
 require_once __DIR__ . '/inventory-repository.php';
 require_once __DIR__ . '/customer-auth.php';
-require_once __DIR__ . '/admin-auth.php';
 require_once __DIR__ . '/csrf.php';
-
-$catalogIsAdmin = adminCurrent();
 
 $catalogNotice = '';
 $catalogCustomer = customerCurrent($conn);
@@ -156,20 +153,6 @@ function catalogFilterDisplayValue(string $key, $value, array $categories): stri
 
     <div class="catalog-layout">
         <aside class="filter-panel">
-            <?php if ($catalogIsAdmin): ?>
-                <div class="filter-admin-panel">
-                    <h2 class="filter-admin-title">Quản trị</h2>
-                    <p class="filter-admin-user">Xin chào, <strong><?php echo htmlspecialchars((string) ($_SESSION['admin_username'] ?? 'Admin')); ?></strong></p>
-                    <nav class="filter-admin-nav" aria-label="Menu quản trị">
-                        <a href="index.php?view=admin-dashboard">Tổng quan</a>
-                        <a href="index.php?view=admin-orders">Đơn hàng</a>
-                        <a href="index.php?view=admin-products">Sản phẩm</a>
-                        <a href="index.php?view=admin-reviews">Đánh giá</a>
-                        <a href="index.php?view=blog-editor">Soạn blog</a>
-                    </nav>
-                </div>
-            <?php endif; ?>
-
             <h2>Bộ lọc</h2>
             <p class="filter-panel-hint">Dùng biểu tượng kính lúp trên thanh menu để tìm sản phẩm.</p>
             <form method="get" action="index.php" class="filter-form">

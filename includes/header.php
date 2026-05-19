@@ -20,9 +20,6 @@ $isAdmin = adminCurrent();
                 <?php if (empty($currentCustomer) && !$isAdmin): ?>
                     <li><a class="<?php echo ($view === 'account') ? 'active' : ''; ?>" href="index.php?view=account">Tài khoản</a></li>
                 <?php endif; ?>
-                <?php if ($isAdmin): ?>
-                    <li><a class="<?php echo (str_starts_with($view, 'admin') || $view === 'blog-editor') ? 'active' : ''; ?>" href="index.php?view=admin-dashboard">Quản trị</a></li>
-                <?php endif; ?>
             </ul>
         </nav>
 
@@ -31,19 +28,32 @@ $isAdmin = adminCurrent();
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.65" y1="16.65" x2="21" y2="21"></line></svg>
             </button>
             <div class="nav-account-wrap">
-                <button type="button" class="icon-link nav-account-trigger<?php echo !empty($currentCustomer) ? ' nav-account-trigger--active' : ''; ?>" aria-label="Tài khoản" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-menu" id="nav-account-btn">
+                <?php if ($isAdmin): ?>
+                    <span class="nav-account-label">Admin</span>
+                <?php elseif (!empty($currentCustomer)): ?>
+                    <span class="nav-account-label"><?php echo htmlspecialchars($currentCustomer['full_name']); ?></span>
+                <?php endif; ?>
+                <button type="button" class="icon-link nav-account-trigger<?php echo (!empty($currentCustomer) || $isAdmin) ? ' nav-account-trigger--active' : ''; ?>" aria-label="Tài khoản" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-menu" id="nav-account-btn">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </button>
                 <div class="nav-account-dropdown" id="nav-account-menu" role="menu" hidden>
-                    <?php if (!empty($currentCustomer)): ?>
-                        <a role="menuitem" href="index.php?view=account#profile-edit">Sửa thông tin</a>
+                    <?php if ($isAdmin): ?>
+                        <p class="nav-account-dropdown-head">Tài khoản quản trị</p>
+                        <a role="menuitem" href="index.php?view=admin-dashboard">Trang quản trị</a>
+                        <a role="menuitem" href="index.php?view=orders">Đơn hàng của tôi</a>
                         <form method="post" action="" class="nav-account-logout">
                             <?php echo csrfField(); ?>
                             <input type="hidden" name="auth_action" value="logout">
                             <button type="submit" class="nav-account-btn">Đăng xuất</button>
                         </form>
-                    <?php elseif ($isAdmin): ?>
-                        <a role="menuitem" href="index.php?view=admin-dashboard">Bảng quản trị</a>
+                    <?php elseif (!empty($currentCustomer)): ?>
+                        <a role="menuitem" href="index.php?view=account#profile-edit">Sửa thông tin</a>
+                        <a role="menuitem" href="index.php?view=orders">Đơn hàng của tôi</a>
+                        <form method="post" action="" class="nav-account-logout">
+                            <?php echo csrfField(); ?>
+                            <input type="hidden" name="auth_action" value="logout">
+                            <button type="submit" class="nav-account-btn">Đăng xuất</button>
+                        </form>
                     <?php else: ?>
                         <button type="button" class="nav-account-btn" role="menuitem" data-open-auth="login">Đăng nhập</button>
                         <button type="button" class="nav-account-btn" role="menuitem" data-open-auth="register">Đăng ký</button>

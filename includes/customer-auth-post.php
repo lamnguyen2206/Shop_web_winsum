@@ -69,12 +69,12 @@ function customerAuthHandlePost(mysqli $conn): void
         $result = customerLogin($conn, (string) ($_POST['identifier'] ?? ''), (string) ($_POST['password'] ?? ''));
         if ($result['ok'] && !empty($result['is_admin'])) {
             $_SESSION['auth_flash'] = [
-                'message' => $result['message'],
+                'message' => 'Đăng nhập thành công! Chào mừng admin quay trở lại.',
                 'success' => true,
                 'open' => null,
                 'prefill' => [],
             ];
-            header('Location: index.php?view=admin-dashboard', true, 303);
+            header('Location: index.php?view=home', true, 303);
             exit;
         }
         $_SESSION['auth_flash'] = [

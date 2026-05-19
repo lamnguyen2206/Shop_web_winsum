@@ -81,6 +81,34 @@ function blogSanitizeHtml(string $html): string
     return $clean;
 }
 
+function blogGetCategoryOptions(mysqli $conn): array
+{
+    $categories = [];
+    $result = $conn->query('SELECT name FROM blog_categories WHERE is_active = 1 ORDER BY name ASC');
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = (string) $row['name'];
+        }
+    }
+    if ($categories === []) {
+        $categories = ['Tin tức', 'Xu hướng', 'Hướng dẫn', 'Không gian sống'];
+    }
+    return $categories;
+}
+
+function blogEstimateReadTime(string $html): string
+{
+    $text = trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return '1 phút đọc';
+    }
+    $words = preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+    $wordCount = is_array($words) ? count($words) : 0;
+    $minutes = max(1, (int) ceil($wordCount / 200));
+
+    return $minutes . ' phút đọc';
+}
+
 function blogCreatePost(mysqli $conn, array $payload): bool
 {
     $stmt = $conn->prepare("INSERT INTO blog_posts
