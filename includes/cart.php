@@ -54,7 +54,7 @@ $totals = cartCalculateTotals($cartItems, $conn, $customerId);
                                         <?php
                                         $itemStock = (string) ($item['stock_status'] ?? 'in_stock');
                                         if ($itemStock === 'preorder'): ?>
-                                            <span class="cart-preorder-badge">Đặt trước — không trừ kho</span>
+                                            <span class="cart-preorder-badge">Đặt trước (Nhận hàng sau 15 ngày)</span>
                                         <?php elseif (isset($stockLabels[$itemStock])): ?>
                                             <span class="cart-stock-badge cart-stock-badge--<?php echo htmlspecialchars($itemStock); ?>"><?php echo htmlspecialchars($stockLabels[$itemStock]); ?></span>
                                         <?php endif; ?>
