@@ -68,6 +68,7 @@ function blogEditorDefaultForm(mysqli $conn): array
     $categoryOptions = blogGetCategoryOptions($conn);
 
     return [
+        'post_id' => 0,
         'title' => '',
         'slug' => '',
         'excerpt' => '',
@@ -76,6 +77,27 @@ function blogEditorDefaultForm(mysqli $conn): array
         'category' => $categoryOptions[0] ?? 'Tin tức',
         'published_at' => date('Y-m-d'),
         'is_featured' => false,
+        'status' => 'published',
+    ];
+}
+
+function blogEditorFormFromPost(array $post): array
+{
+    $contentHtml = $post['content_html'] !== ''
+        ? $post['content_html']
+        : '<p>' . implode('</p><p>', array_map('htmlspecialchars', $post['content'])) . '</p>';
+
+    return [
+        'post_id' => (int) $post['id'],
+        'title' => (string) $post['title'],
+        'slug' => (string) $post['slug'],
+        'excerpt' => (string) $post['excerpt'],
+        'content_html' => $contentHtml,
+        'image' => (string) $post['image'],
+        'category' => (string) $post['category'],
+        'published_at' => (string) $post['date'],
+        'is_featured' => !empty($post['is_featured']),
+        'status' => (string) ($post['status'] ?? 'published'),
     ];
 }
 
@@ -91,7 +113,10 @@ function blogEditorHandlePost(mysqli $conn, string $view): void
         adminRequire();
     }
 
+    $postId = (int) ($_POST['post_id'] ?? 0);
+
     $posted = [
+        'post_id' => $postId,
         'title' => trim((string) ($_POST['title'] ?? '')),
         'slug' => trim((string) ($_POST['slug'] ?? '')),
         'excerpt' => trim((string) ($_POST['excerpt'] ?? '')),
@@ -100,6 +125,7 @@ function blogEditorHandlePost(mysqli $conn, string $view): void
         'category' => trim((string) ($_POST['category'] ?? 'Tin tức')),
         'published_at' => trim((string) ($_POST['published_at'] ?? date('Y-m-d'))),
         'is_featured' => !empty($_POST['is_featured']),
+        'status' => trim((string) ($_POST['status'] ?? 'published')),
     ];
 
     if (!csrfValidate()) {
@@ -108,7 +134,7 @@ function blogEditorHandlePost(mysqli $conn, string $view): void
             'success' => false,
             'form' => array_merge(blogEditorDefaultForm($conn), $posted),
         ];
-        redirect(app_url('blog-editor'));
+        redirect(app_url('blog-editor', $postId > 0 ? ['edit' => $postId] : []));
     }
 
     $title = $posted['title'];
@@ -135,11 +161,28 @@ function blogEditorHandlePost(mysqli $conn, string $view): void
                 'content_html' => $contentHtml,
             ]),
         ];
-        redirect(app_url('blog-editor'));
+        redirect(app_url('blog-editor', $postId > 0 ? ['edit' => $postId] : []));
+    }
+
+    $status = in_array($posted['status'], ['draft', 'published', 'archived'], true)
+        ? $posted['status']
+        : 'published';
+
+    if (blogSlugExists($conn, $slug, $postId)) {
+        $_SESSION['blog_editor'] = [
+            'message' => 'Slug đã được dùng cho bài viết khác. Vui lòng đổi slug.',
+            'success' => false,
+            'form' => array_merge(blogEditorDefaultForm($conn), $posted, [
+                'slug' => $slug,
+                'content_html' => $contentHtml,
+                'image' => $image,
+            ]),
+        ];
+        redirect(app_url('blog-editor', $postId > 0 ? ['edit' => $postId] : []));
     }
 
     $readTime = blogEstimateReadTime($contentHtml);
-    $ok = blogCreatePost($conn, [
+    $payload = [
         'title' => $title,
         'slug' => $slug,
         'excerpt' => $excerpt,
@@ -149,27 +192,43 @@ function blogEditorHandlePost(mysqli $conn, string $view): void
         'read_time' => $readTime,
         'published_at' => $publishedAt !== '' ? $publishedAt : date('Y-m-d'),
         'is_featured' => $isFeatured,
-    ]);
+        'status' => $status,
+    ];
+
+    if ($postId > 0) {
+        $ok = blogUpdatePost($conn, $postId, $payload);
+        $successMessage = 'Đã cập nhật bài viết.';
+        $failMessage = 'Không thể cập nhật bài viết.';
+        $redirectParams = ['edit' => $postId];
+    } else {
+        $ok = blogCreatePost($conn, $payload);
+        $successMessage = 'Đã đăng bài viết thành công.';
+        $failMessage = 'Không thể lưu bài viết.';
+        $redirectParams = [];
+    }
 
     if ($ok) {
         $_SESSION['blog_editor'] = [
-            'message' => 'Đã đăng bài viết thành công.',
+            'message' => $successMessage,
             'success' => true,
-            'form' => blogEditorDefaultForm($conn),
+            'form' => $postId > 0
+                ? blogEditorFormFromPost((array) blogGetPostById($conn, $postId))
+                : blogEditorDefaultForm($conn),
         ];
-    } else {
-        $_SESSION['blog_editor'] = [
-            'message' => 'Không thể lưu bài viết. Kiểm tra slug có thể đã tồn tại.',
-            'success' => false,
-            'form' => array_merge(blogEditorDefaultForm($conn), $posted, [
-                'slug' => $slug,
-                'content_html' => $contentHtml,
-                'image' => $image,
-            ]),
-        ];
+        redirect(app_url('admin-blog', ['msg' => $successMessage]));
     }
 
-    redirect(app_url('blog-editor'));
+    $_SESSION['blog_editor'] = [
+        'message' => $failMessage,
+        'success' => false,
+        'form' => array_merge(blogEditorDefaultForm($conn), $posted, [
+            'slug' => $slug,
+            'content_html' => $contentHtml,
+            'image' => $image,
+        ]),
+    ];
+
+    redirect(app_url('blog-editor', $redirectParams));
 }
 
 /**
@@ -185,6 +244,19 @@ function blogEditorLoadState(mysqli $conn): array
             'success' => (bool) ($state['success'] ?? false),
             'form' => is_array($state['form'] ?? null) ? $state['form'] : blogEditorDefaultForm($conn),
         ];
+    }
+
+    $editId = (int) ($_GET['edit'] ?? 0);
+    if ($editId > 0) {
+        require_once __DIR__ . '/blog-repository.php';
+        $post = blogGetPostById($conn, $editId);
+        if ($post) {
+            return [
+                'message' => '',
+                'success' => false,
+                'form' => blogEditorFormFromPost($post),
+            ];
+        }
     }
 
     return [

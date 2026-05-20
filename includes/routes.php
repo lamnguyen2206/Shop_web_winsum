@@ -29,6 +29,7 @@ function appRoutes(): array
         'admin-customers' => 'includes/admin-customers.php',
         'admin-products' => 'includes/admin-products.php',
         'admin-reviews' => 'includes/admin-reviews.php',
+        'admin-blog' => 'includes/admin-blog.php',
     ];
 
     $titles = [
@@ -48,6 +49,7 @@ function appRoutes(): array
         'admin-customers' => 'Quản lý khách hàng | Winsum Home',
         'admin-products' => 'Quản trị sản phẩm | Winsum Home',
         'admin-reviews' => 'Quản trị đánh giá | Winsum Home',
+        'admin-blog' => 'Quản lý blog | Winsum Home',
     ];
 
     return [
@@ -94,6 +96,9 @@ function appAssetsForView(string $view, bool $storefrontGuest): array
     }
     if ($view === 'checkout') {
         $scripts[] = 'assets/js/checkout.js';
+    }
+    if ($view === 'home') {
+        $scripts[] = 'assets/js/home.js';
     }
     if ($storefrontGuest) {
         $styles[] = 'assets/css/auth-forms.css';

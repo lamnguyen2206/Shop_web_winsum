@@ -9,13 +9,16 @@ $categoryOptions = blogGetCategoryOptions($conn);
 
 $coverPreviewUrl = $f['image'] !== '' ? $f['image'] : '';
 $showCoverPreview = $coverPreviewUrl !== '';
+$editPostId = (int) ($f['post_id'] ?? 0);
+$isEditing = $editPostId > 0;
 ?>
 
 <section class="container blog-editor-page admin-page">
-    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <a href="<?php echo e(app_url('blog')); ?>">Blog</a> / <span>Soạn bài</span></p>
+    <p class="breadcrumb"><a href="<?php echo e(app_url('home')); ?>">Trang chủ</a> / <a href="<?php echo e(app_url('admin-blog')); ?>">Quản lý blog</a> / <span><?php echo $isEditing ? 'Sửa bài' : 'Viết bài mới'; ?></span></p>
 
-    <div class="admin-page-head">
-        <h1>Soạn bài blog</h1>
+    <div class="admin-page-head admin-page-head--toolbar">
+        <h1><?php echo $isEditing ? 'Chỉnh sửa bài viết' : 'Viết bài blog mới'; ?></h1>
+        <a class="btn-secondary" href="<?php echo e(app_url('admin-blog')); ?>">← Danh sách blog</a>
     </div>
 
     <?php include __DIR__ . '/admin-nav.php'; ?>
@@ -28,8 +31,9 @@ $showCoverPreview = $coverPreviewUrl !== '';
         </p>
     <?php endif; ?>
 
-    <form method="post" action="index.php?view=blog-editor" class="blog-editor-form" id="blogEditorForm" enctype="multipart/form-data">
+    <form method="post" action="<?php echo e(app_url('blog-editor', $isEditing ? ['edit' => $editPostId] : [])); ?>" class="blog-editor-form" id="blogEditorForm" enctype="multipart/form-data">
         <?php echo csrfField(); ?>
+        <input type="hidden" name="post_id" value="<?php echo $editPostId; ?>">
 
         <div class="blog-editor-layout">
             <div class="blog-editor-main">
@@ -82,13 +86,25 @@ $showCoverPreview = $coverPreviewUrl !== '';
                     </div>
 
                     <div class="blog-editor-field">
+                        <label for="blogStatus">Trạng thái</label>
+                        <select id="blogStatus" name="status" required>
+                            <?php
+                            $statusVal = (string) ($f['status'] ?? 'published');
+                            foreach (['published' => 'Đã đăng', 'draft' => 'Nháp', 'archived' => 'Lưu trữ'] as $val => $label):
+                                ?>
+                                <option value="<?php echo e($val); ?>" <?php echo $statusVal === $val ? 'selected' : ''; ?>><?php echo e($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="blog-editor-field">
                         <label for="blogPublishedAt">Ngày đăng</label>
                         <input type="date" id="blogPublishedAt" name="published_at" required value="<?php echo e($f['published_at']); ?>">
                     </div>
 
                     <div class="blog-editor-field">
                         <label for="blogSlug">Slug (URL)</label>
-                        <input type="text" id="blogSlug" name="slug" required readonly value="<?php echo e($f['slug']); ?>" data-manual="0" placeholder="tu-dong-tu-tieu-de">
+                        <input type="text" id="blogSlug" name="slug" required readonly value="<?php echo e($f['slug']); ?>" data-manual="<?php echo $isEditing ? '1' : '0'; ?>" placeholder="tu-dong-tu-tieu-de">
                     </div>
 
                     <div class="blog-editor-field blog-cover-upload">
@@ -117,8 +133,8 @@ $showCoverPreview = $coverPreviewUrl !== '';
         </div>
 
         <div class="blog-editor-actions">
-            <a class="btn-blog-cancel" href="<?php echo e(app_url('blog')); ?>">Hủy / Quay lại</a>
-            <button type="submit" name="save_blog_post" value="1" class="btn-blog-publish">Đăng bài viết</button>
+            <a class="btn-blog-cancel" href="<?php echo e(app_url('admin-blog')); ?>">Hủy</a>
+            <button type="submit" name="save_blog_post" value="1" class="btn-blog-publish"><?php echo $isEditing ? 'Lưu thay đổi' : 'Đăng bài viết'; ?></button>
         </div>
     </form>
 </section>

@@ -94,12 +94,19 @@
 }
 
 /* Trang catalog: sidebar ~22%, lưới sản phẩm ~76% (còn lại sau gap) */
+.catalog-page.container {
+    width: 90%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 2.5vw, 2rem);
+}
+
 .catalog-page {
     --catalog-sidebar-pct: 22%;
     --catalog-main-fr: 1fr;
     --catalog-col-gap-pct: 2%;
-    --catalog-grid-cols: 5;
-    --catalog-card-gap: var(--space-4);
+    --catalog-grid-cols: 8;
+    --catalog-card-gap: var(--space-3);
 }
 
 .catalog-layout {
@@ -241,7 +248,12 @@
     box-sizing: border-box;
 }
 
+.catalog-grid > * {
+    min-width: 0;
+}
+
 .catalog-card {
+    box-sizing: border-box;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -332,7 +344,7 @@
 }
 
 .catalog-content h3 {
-    font-size: 1.1rem;
+    font-size: clamp(0.8rem, 0.65vw + 0.55rem, 1.05rem);
     font-family: var(--font-serif, "Times New Roman", serif);
     font-weight: 500;
     margin-bottom: 6px;
@@ -572,6 +584,28 @@
     padding: 24px;
 }
 
+@media (min-width: 1201px) {
+    .catalog-page {
+        --catalog-grid-cols: 8;
+    }
+
+    .catalog-image img {
+        aspect-ratio: 1 / 1;
+        max-height: none;
+        height: clamp(100px, 9vw, 160px);
+    }
+
+    .catalog-content {
+        padding: var(--space-3);
+    }
+}
+
+@media (max-width: 1200px) {
+    .catalog-page {
+        --catalog-grid-cols: 4;
+    }
+}
+
 @media (max-width: 1024px) {
     .catalog-page {
         --catalog-grid-cols: 3;
@@ -579,6 +613,7 @@
 
     .catalog-image img {
         max-height: 38vh;
+        height: auto;
     }
 }
 

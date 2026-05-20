@@ -9,7 +9,7 @@ $catalogAdminNoShop = !customerMayShopOnStorefront($catalogCustomer);
 
 $filters = productBuildFiltersFromRequest();
 $categories = productGetFilterCategories($conn);
-$perPage = 9;
+$perPage = 16;
 $currentPage = max(1, (int) ($_GET['page'] ?? 1));
 $totalProducts = productCountSearchProducts($conn, $filters);
 $totalPages = max(1, (int) ceil($totalProducts / $perPage));
