@@ -1248,3 +1248,56 @@
         font-size: 13px;
     }
 }
+
+/* Quản lý blog */
+.admin-blog-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.admin-blog-search {
+    flex: 1;
+    min-width: 200px;
+}
+
+.admin-blog-search input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border-strong, #d0d5dd);
+    border-radius: var(--radius-md, 8px);
+    font-size: 14px;
+}
+
+.admin-blog-thumb img {
+    width: 56px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+}
+
+.admin-blog-slug {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.badge-status--published {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-status--draft {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-status--archived {
+    background: #f3f4f6;
+    color: #4b5563;
+}

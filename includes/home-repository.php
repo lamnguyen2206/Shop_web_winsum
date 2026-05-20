@@ -39,6 +39,28 @@ function homeGetFeaturedCategories(mysqli $conn, ?int $limit = null): array
     return $categories;
 }
 
+/** Danh mục trang chủ (6 loại, thứ tự cố định gồm kệ trang trí). */
+function homeGetDisplayCategories(mysqli $conn): array
+{
+    require_once __DIR__ . '/product-repository.php';
+
+    return productGetNavMenuCategories($conn);
+}
+
+function homeCategoryImageUrl(string $slug): string
+{
+    $map = [
+        'den-tha-tran' => 'assets/images/index-c1.webp',
+        'den-tuong' => 'assets/images/index-c2.webp',
+        'den-ban' => 'assets/images/index-c3.webp',
+        'den-san' => 'assets/images/index-c4.webp',
+        'den-chum' => 'assets/images/index-c5.webp',
+        'ke-trang-tri' => 'assets/images/index-c6.webp',
+    ];
+
+    return $map[$slug] ?? 'assets/images/blog_1.png';
+}
+
 function homeGetFeaturedProducts(mysqli $conn, int $limit = 3): array
 {
     $sql = "SELECT p.id, p.slug, p.name, p.base_price, c.name AS category_name,

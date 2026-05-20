@@ -34,6 +34,9 @@
   --color-header-text: #e8eaed;
   --color-header-muted: #9ca3af;
 
+  /* Layout */
+  --layout-gutter: clamp(1rem, 3vw, 2.5rem);
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -92,8 +95,10 @@ img {
 }
 
 .container {
-  width: min(1240px, 92%);
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
+  padding-inline: var(--layout-gutter);
 }
 
 /* —— Header —— */
@@ -513,10 +518,6 @@ main {
 }
 
 @media (max-width: 992px) {
-  .container {
-    width: min(980px, 94%);
-  }
-
   .brand {
     font-size: 1.45rem;
   }

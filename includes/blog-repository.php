@@ -109,11 +109,20 @@ function blogEstimateReadTime(string $html): string
     return $minutes . ' phút đọc';
 }
 
+function blogPublishedWhereSql(): string
+{
+    return "status = 'published'";
+}
+
 function blogCreatePost(mysqli $conn, array $payload): bool
 {
+    $status = in_array($payload['status'] ?? '', ['draft', 'published', 'archived'], true)
+        ? $payload['status']
+        : 'published';
+
     $stmt = $conn->prepare("INSERT INTO blog_posts
         (slug, title, excerpt, content, category, image, read_time, published_at, is_featured, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if (!$stmt) {
         return false;
     }
@@ -128,16 +137,241 @@ function blogCreatePost(mysqli $conn, array $payload): bool
     $publishedAt = $payload['published_at'];
     $isFeatured = !empty($payload['is_featured']) ? 1 : 0;
 
-    $stmt->bind_param('ssssssssi', $slug, $title, $excerpt, $content, $category, $image, $readTime, $publishedAt, $isFeatured);
+    $stmt->bind_param('ssssssssis', $slug, $title, $excerpt, $content, $category, $image, $readTime, $publishedAt, $isFeatured, $status);
     $ok = $stmt->execute();
     $stmt->close();
     return $ok;
+}
+
+function blogUpdatePost(mysqli $conn, int $id, array $payload): bool
+{
+    $status = in_array($payload['status'] ?? '', ['draft', 'published', 'archived'], true)
+        ? $payload['status']
+        : 'published';
+
+    $stmt = $conn->prepare("UPDATE blog_posts SET
+        slug = ?, title = ?, excerpt = ?, content = ?, category = ?, image = ?,
+        read_time = ?, published_at = ?, is_featured = ?, status = ?
+        WHERE id = ?");
+    if (!$stmt) {
+        return false;
+    }
+
+    $slug = $payload['slug'];
+    $title = $payload['title'];
+    $excerpt = $payload['excerpt'];
+    $content = $payload['content'];
+    $category = $payload['category'];
+    $image = $payload['image'];
+    $readTime = $payload['read_time'];
+    $publishedAt = $payload['published_at'];
+    $isFeatured = !empty($payload['is_featured']) ? 1 : 0;
+
+    $stmt->bind_param(
+        'ssssssssisi',
+        $slug,
+        $title,
+        $excerpt,
+        $content,
+        $category,
+        $image,
+        $readTime,
+        $publishedAt,
+        $isFeatured,
+        $status,
+        $id
+    );
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function blogSlugExists(mysqli $conn, string $slug, int $excludeId = 0): bool
+{
+    if ($excludeId > 0) {
+        $stmt = $conn->prepare('SELECT id FROM blog_posts WHERE slug = ? AND id <> ? LIMIT 1');
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('si', $slug, $excludeId);
+    } else {
+        $stmt = $conn->prepare('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1');
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $slug);
+    }
+    $stmt->execute();
+    $exists = (bool) $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $exists;
+}
+
+function blogGetPostById(mysqli $conn, int $id): ?array
+{
+    $stmt = $conn->prepare("SELECT id, slug, title, excerpt, content, category, image, read_time, published_at, is_featured, status
+                            FROM blog_posts
+                            WHERE id = ?
+                            LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        return null;
+    }
+
+    $mapped = blogMapPostRow($row);
+    $mapped['status'] = (string) ($row['status'] ?? 'published');
+
+    return $mapped;
+}
+
+/**
+ * @return list<array<string, mixed>>
+ */
+function blogAdminList(mysqli $conn, ?string $statusFilter = null, string $search = ''): array
+{
+    $sql = "SELECT id, slug, title, excerpt, category, image, read_time, published_at, is_featured, status, created_at
+            FROM blog_posts
+            WHERE 1=1";
+    $types = '';
+    $params = [];
+
+    if ($statusFilter !== null && $statusFilter !== '' && $statusFilter !== 'all') {
+        $sql .= ' AND status = ?';
+        $types .= 's';
+        $params[] = $statusFilter;
+    }
+
+    $search = trim($search);
+    if ($search !== '') {
+        $sql .= ' AND (title LIKE ? OR slug LIKE ? OR category LIKE ?)';
+        $types .= 'sss';
+        $like = '%' . $search . '%';
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+    }
+
+    $sql .= ' ORDER BY published_at DESC, id DESC';
+
+    if ($types === '') {
+        $result = $conn->query($sql);
+        if (!$result) {
+            return [];
+        }
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        return array_map(static function (array $row): array {
+            return [
+                'id' => (int) $row['id'],
+                'slug' => $row['slug'],
+                'title' => $row['title'],
+                'excerpt' => $row['excerpt'],
+                'category' => $row['category'],
+                'image' => $row['image'],
+                'read_time' => $row['read_time'],
+                'published_at' => $row['published_at'],
+                'date_label' => blogFormatVietnameseDateLabel($row['published_at']),
+                'is_featured' => (int) $row['is_featured'] === 1,
+                'status' => (string) ($row['status'] ?? 'published'),
+                'created_at' => (string) ($row['created_at'] ?? ''),
+            ];
+        }, $rows);
+    }
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = [];
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $stmt->close();
+
+    return array_map(static function (array $row): array {
+        return [
+            'id' => (int) $row['id'],
+            'slug' => $row['slug'],
+            'title' => $row['title'],
+            'excerpt' => $row['excerpt'],
+            'category' => $row['category'],
+            'image' => $row['image'],
+            'read_time' => $row['read_time'],
+            'published_at' => $row['published_at'],
+            'date_label' => blogFormatVietnameseDateLabel($row['published_at']),
+            'is_featured' => (int) $row['is_featured'] === 1,
+            'status' => (string) ($row['status'] ?? 'published'),
+            'created_at' => (string) ($row['created_at'] ?? ''),
+        ];
+    }, $rows);
+}
+
+function blogAdminDelete(mysqli $conn, int $id): bool
+{
+    $stmt = $conn->prepare('DELETE FROM blog_posts WHERE id = ?');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function blogAdminSetStatus(mysqli $conn, int $id, string $status): bool
+{
+    if (!in_array($status, ['draft', 'published', 'archived'], true)) {
+        return false;
+    }
+    $stmt = $conn->prepare('UPDATE blog_posts SET status = ? WHERE id = ?');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('si', $status, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function blogAdminToggleFeatured(mysqli $conn, int $id): bool
+{
+    $stmt = $conn->prepare('UPDATE blog_posts SET is_featured = IF(is_featured = 1, 0, 1) WHERE id = ?');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function blogStatusLabel(string $status): string
+{
+    $map = [
+        'draft' => 'Nháp',
+        'published' => 'Đã đăng',
+        'archived' => 'Lưu trữ',
+    ];
+    return $map[$status] ?? $status;
 }
 
 function blogGetAllPosts(mysqli $conn): array
 {
     $sql = "SELECT id, slug, title, excerpt, content, category, image, read_time, published_at, is_featured
             FROM blog_posts
+            WHERE " . blogPublishedWhereSql() . "
             ORDER BY published_at DESC, id DESC";
     $result = $conn->query($sql);
     if (!$result) {
@@ -155,7 +389,7 @@ function blogGetFeaturedPosts(mysqli $conn, int $limit = 3): array
 {
     $stmt = $conn->prepare("SELECT id, slug, title, excerpt, content, category, image, read_time, published_at, is_featured
                             FROM blog_posts
-                            WHERE is_featured = 1
+                            WHERE is_featured = 1 AND " . blogPublishedWhereSql() . "
                             ORDER BY published_at DESC, id DESC
                             LIMIT ?");
     if (!$stmt) {
@@ -176,7 +410,7 @@ function blogGetPostBySlug(mysqli $conn, string $slug): ?array
 {
     $stmt = $conn->prepare("SELECT id, slug, title, excerpt, content, category, image, read_time, published_at, is_featured
                             FROM blog_posts
-                            WHERE slug = ?
+                            WHERE slug = ? AND " . blogPublishedWhereSql() . "
                             LIMIT 1");
     if (!$stmt) {
         return null;
@@ -194,7 +428,7 @@ function blogGetRelatedPosts(mysqli $conn, string $category, string $excludedSlu
 {
     $stmt = $conn->prepare("SELECT id, slug, title, excerpt, content, category, image, read_time, published_at, is_featured
                             FROM blog_posts
-                            WHERE category = ? AND slug <> ?
+                            WHERE category = ? AND slug <> ? AND " . blogPublishedWhereSql() . "
                             ORDER BY published_at DESC, id DESC
                             LIMIT ?");
     if (!$stmt) {

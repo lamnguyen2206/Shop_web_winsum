@@ -55,6 +55,40 @@ function adminHandlePost(mysqli $conn, string $view): void
     if (in_array($view, ['admin-orders', 'admin-order-detail'], true) && csrfValidate()) {
         adminHandleOrdersPost($conn, $view);
     }
+
+    if ($view === 'admin-blog' && csrfValidate()) {
+        adminHandleBlogPost($conn);
+    }
+}
+
+function adminHandleBlogPost(mysqli $conn): void
+{
+    require_once __DIR__ . '/blog-repository.php';
+
+    $action = (string) ($_POST['action'] ?? '');
+    $postId = (int) ($_POST['post_id'] ?? 0);
+    $message = 'Thao tác không hợp lệ.';
+    $ok = false;
+
+    if ($postId <= 0) {
+        redirect(app_url('admin-blog', ['msg' => $message]));
+    }
+
+    if ($action === 'delete_blog_post') {
+        $ok = blogAdminDelete($conn, $postId);
+        $message = $ok ? 'Đã xóa bài viết.' : 'Không thể xóa bài viết.';
+    } elseif ($action === 'toggle_blog_featured') {
+        $ok = blogAdminToggleFeatured($conn, $postId);
+        $message = $ok ? 'Đã cập nhật bài nổi bật.' : 'Không thể cập nhật.';
+    } elseif ($action === 'set_blog_status') {
+        $status = (string) ($_POST['status'] ?? '');
+        $ok = blogAdminSetStatus($conn, $postId, $status);
+        $message = $ok
+            ? 'Đã cập nhật trạng thái: ' . blogStatusLabel($status) . '.'
+            : 'Không thể cập nhật trạng thái.';
+    }
+
+    redirect(app_url('admin-blog', ['msg' => $message]));
 }
 
 function adminHandleOrdersPost(mysqli $conn, string $view): void
