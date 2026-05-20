@@ -5,5 +5,5 @@
  */
 return [
     'username' => 'admin',
-    'password_hash' => '$2y$10$LiwDdPmNl40o4nDcOw8H9O4UyStaVDFyclvHztxZjxfEP6T4Fna3K',
+    'password_hash' => '$2y$10$Yt6E6fhUoPDIAmUAGs7DvuJc9knpFA3E9j05wY4ALVRz6XNECHVmi',
 ];

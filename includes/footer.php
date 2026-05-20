@@ -33,9 +33,9 @@
             <!-- COPYRIGHT -->
             <div class="footer-copy">
                 © Bản quyền thuộc về 
-                <a href="#">EGANY</a> | 
+                <a href="#">Winsum</a> | 
                 Cung cấp bởi 
-                <a href="#">Sapo</a>
+                <a href="#">Winsum</a>
             </div>
         </div>
     </footer>
