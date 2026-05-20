@@ -98,10 +98,6 @@ function storefrontHandleCartPost(mysqli $conn): void
             $success = true;
         } elseif ($action === 'apply_coupon') {
             $coupon = strtoupper(trim((string) ($_POST['coupon_code'] ?? '')));
-            $guestCouponPhone = trim((string) ($_POST['guest_coupon_phone'] ?? ''));
-            if ($guestCouponPhone !== '') {
-                $_SESSION['guest_coupon_phone'] = $guestCouponPhone;
-            }
             if ($coupon === '') {
                 cartSetCoupon(null);
                 $notice = 'Đã xóa mã giảm giá.';
@@ -113,13 +109,13 @@ function storefrontHandleCartPost(mysqli $conn): void
                 foreach ($items as $item) {
                     $subtotal += ((int) $item['price']) * ((int) $item['qty']);
                 }
-                $validation = couponValidate($conn, $coupon, (float) $subtotal, $customerId, $guestCouponPhone);
+                $validation = couponValidate($conn, $coupon, (float) $subtotal, $customerId);
                 cartSetCoupon($validation['ok'] ? $validation['coupon'] : null);
                 $notice = $validation['message'];
                 $success = $validation['ok'];
-                if ($validation['ok'] && !$customerId && $guestCouponPhone !== '') {
+                if ($validation['ok'] && !$customerId) {
                     require_once __DIR__ . '/coupon-repository.php';
-                    couponMarkSessionCartApply((int) $validation['coupon']['id'], $guestCouponPhone);
+                    couponMarkSessionCartApply((int) $validation['coupon']['id'], couponGuestLimitKey());
                 }
             }
         }

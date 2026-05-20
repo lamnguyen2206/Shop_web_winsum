@@ -66,7 +66,13 @@ function couponCountUsesByPhone(mysqli $conn, int $couponId, string $phone): int
     return (int) ($row['total'] ?? 0);
 }
 
-/** Số đơn đã đặt trong phiên trình duyệt (guest) với mã + SĐT. */
+/** Khóa giới hạn mã cho khách vãng lai (theo phiên, không cần SĐT). */
+function couponGuestLimitKey(): string
+{
+    return session_id() !== '' ? 'sid:' . session_id() : '';
+}
+
+/** Số đơn đã đặt trong phiên trình duyệt (guest) với mã. */
 function couponCountSessionUsesForPhone(int $couponId, string $phone): int
 {
     $normalized = phoneNormalize($phone);
@@ -157,11 +163,13 @@ function couponValidate(mysqli $conn, string $code, float $subtotal, ?int $custo
             $uses = couponCountCustomerUses($conn, $couponId, $customerId);
         }
         $phone = phoneNormalize($guestPhone);
-        if ($phone === '' && !empty($_SESSION['guest_coupon_phone'])) {
-            $phone = phoneNormalize((string) $_SESSION['guest_coupon_phone']);
+        if ($phone === '' && !$customerId) {
+            $phone = couponGuestLimitKey();
         }
         if ($phone !== '') {
-            $uses = max($uses, couponCountUsesByPhone($conn, $couponId, $phone));
+            if (!str_starts_with($phone, 'sid:')) {
+                $uses = max($uses, couponCountUsesByPhone($conn, $couponId, $phone));
+            }
             $uses = max($uses, couponCountSessionUsesForPhone($couponId, $phone));
         }
         if ($uses >= $perCustomerLimit) {
