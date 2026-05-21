@@ -47,7 +47,12 @@ $posts = blogAdminList($conn, $filterStatus, $searchQuery);
         </div>
 
         <?php if (empty($posts)): ?>
-            <p class="empty-state">Chưa có bài viết nào<?php echo $searchQuery !== '' ? ' khớp từ khóa tìm kiếm' : ''; ?>.</p>
+            <p class="empty-state">
+                Chưa có bài viết nào<?php echo $searchQuery !== '' ? ' khớp từ khóa tìm kiếm' : ''; ?>.
+                <?php if ($searchQuery === '' && $statusFilter === 'all'): ?>
+                    <a href="<?php echo e(app_url('blog-editor')); ?>">Viết bài đầu tiên →</a>
+                <?php endif; ?>
+            </p>
         <?php else: ?>
             <div class="admin-table-wrap">
                 <table class="admin-table admin-blog-table">
@@ -85,6 +90,7 @@ $posts = blogAdminList($conn, $filterStatus, $searchQuery);
                                     <a href="<?php echo e(app_url('blog-editor', ['edit' => (int) $post['id']])); ?>">Sửa</a>
                                     <form method="post" action="<?php echo e(app_url('admin-blog')); ?>" class="admin-inline-form">
                                         <?php echo csrfField(); ?>
+                                        <input type="hidden" name="view" value="admin-blog">
                                         <input type="hidden" name="action" value="toggle_blog_featured">
                                         <input type="hidden" name="post_id" value="<?php echo (int) $post['id']; ?>">
                                         <button type="submit" class="link-muted"><?php echo !empty($post['is_featured']) ? 'Bỏ nổi bật' : 'Nổi bật'; ?></button>
@@ -92,6 +98,7 @@ $posts = blogAdminList($conn, $filterStatus, $searchQuery);
                                     <?php if ($post['status'] !== 'published'): ?>
                                         <form method="post" action="<?php echo e(app_url('admin-blog')); ?>" class="admin-inline-form">
                                             <?php echo csrfField(); ?>
+                                            <input type="hidden" name="view" value="admin-blog">
                                             <input type="hidden" name="action" value="set_blog_status">
                                             <input type="hidden" name="post_id" value="<?php echo (int) $post['id']; ?>">
                                             <input type="hidden" name="status" value="published">
@@ -101,6 +108,7 @@ $posts = blogAdminList($conn, $filterStatus, $searchQuery);
                                     <?php if ($post['status'] !== 'archived'): ?>
                                         <form method="post" action="<?php echo e(app_url('admin-blog')); ?>" class="admin-inline-form">
                                             <?php echo csrfField(); ?>
+                                            <input type="hidden" name="view" value="admin-blog">
                                             <input type="hidden" name="action" value="set_blog_status">
                                             <input type="hidden" name="post_id" value="<?php echo (int) $post['id']; ?>">
                                             <input type="hidden" name="status" value="archived">
@@ -109,6 +117,7 @@ $posts = blogAdminList($conn, $filterStatus, $searchQuery);
                                     <?php endif; ?>
                                     <form method="post" action="<?php echo e(app_url('admin-blog')); ?>" class="admin-inline-form" onsubmit="return confirm('Xóa vĩnh viễn bài viết này?');">
                                         <?php echo csrfField(); ?>
+                                        <input type="hidden" name="view" value="admin-blog">
                                         <input type="hidden" name="action" value="delete_blog_post">
                                         <input type="hidden" name="post_id" value="<?php echo (int) $post['id']; ?>">
                                         <button type="submit" class="link-danger">Xóa</button>

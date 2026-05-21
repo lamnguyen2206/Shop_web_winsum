@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/blog-repository.php';
+require_once __DIR__ . '/blog-repository.php';
 require_once __DIR__ . '/admin-auth.php';
 
 $blogPosts = blogGetAllPosts($conn);

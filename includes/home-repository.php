@@ -49,16 +49,22 @@ function homeGetDisplayCategories(mysqli $conn): array
 
 function homeCategoryImageUrl(string $slug): string
 {
-    $map = [
-        'den-tha-tran' => 'assets/images/index-c1.webp',
+    static $map = [
+        'den-tha-tran' => 'assets/images/đèn thả ph.webp',
         'den-tuong' => 'assets/images/index-c2.webp',
-        'den-ban' => 'assets/images/index-c3.webp',
-        'den-san' => 'assets/images/index-c4.webp',
-        'den-chum' => 'assets/images/index-c5.webp',
-        'ke-trang-tri' => 'assets/images/index-c6.webp',
+        'den-ban' => 'assets/images/đèn bàn dbb07.webp',
+        'den-san' => 'assets/images/đèn sàn sofa.webp',
+        'den-chum' => 'assets/images/đèn thả chùm bauhaus.webp',
+        'ke-trang-tri' => 'assets/images/kệ tivi 4 chân.webp',
     ];
 
-    return $map[$slug] ?? 'assets/images/blog_1.png';
+    $path = $map[$slug] ?? 'assets/images/index-c3.webp';
+    $fullPath = dirname(__DIR__) . '/' . $path;
+    if (!is_file($fullPath)) {
+        return 'assets/images/index-c3.webp';
+    }
+
+    return $path;
 }
 
 function homeGetFeaturedProducts(mysqli $conn, int $limit = 3): array

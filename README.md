@@ -1,6 +1,6 @@
-# Winsum Home — Website bán nội thất & chiếu sáng
+# Winsum Home
 
-Đồ án web thuần **PHP + MySQL**, chạy trên XAMPP.
+Website bán **nội thất & chiếu sáng** — PHP thuần + MySQL, chạy trên XAMPP.
 
 ## Yêu cầu
 
@@ -8,106 +8,138 @@
 - MySQL / MariaDB
 - Apache (XAMPP)
 
-## Cài đặt
+## Cài đặt nhanh
 
-1. Copy project vào `htdocs/webfinal`.
-2. Import database:
+1. Đặt project vào `htdocs/webfinal`.
+2. Import database (từ thư mục gốc project):
 
 ```bash
 mysql -u root -p < database/winsumhome_schema.sql
 ```
 
-Nếu DB đã tạo trước đó (thiếu bảng cảnh báo tồn kho):
+3. Sao chép và chỉnh `config/database.php` (mẫu: `config/database.example.php`), database mặc định: `winsumweb`.
+4. Mở trình duyệt: `http://localhost/webfinal/index.php`
+
+### Nâng cấp database đã có sẵn
+
+Chạy từng file schema bổ sung khi thiếu bảng:
 
 ```bash
 mysql -u root -p winsumweb < database/schema/13_inventory_alerts.sql
+mysql -u root -p winsumweb < database/schema/14_blog_comments.sql
 ```
 
-3. Cấu hình `config/database.php` (mẫu: `config/database.example.php`), database `winsumweb`.
-4. Mở: `http://localhost/webfinal/index.php` (admin + tồn kho mẫu nằm trong `12_seed_winsumhome.sql`; DB cũ có thể tự bổ sung admin khi tải trang).
+> Lần tải trang đầu sau khi cập nhật code, hệ thống cũng tự tạo bảng `blog_comments` nếu chưa có.
 
 ## Tài khoản demo
 
-| Loại | Thông tin |
-|------|-----------|
-| Admin | Đăng nhập **chung** form khách: `admin` / `admin123` (hoặc `admin@winsumhome.vn`, `0901000000`) → chuyển tới bảng quản trị |
-| Mã giảm giá | `WINSUMXINCHAO` (giảm 40.000đ) |
-| Khách hàng | Đăng ký qua popup **Đăng ký** trên trang chủ |
+| Loại | Cách đăng nhập |
+|------|----------------|
+| **Admin** | Form **Đăng nhập** trên header: `admin` / `admin123` (hoặc `admin@winsumhome.vn`, `0901000000`) → chuyển bảng quản trị |
+| **Mã giảm giá** | `WINSUMXINCHAO` — giảm 40.000đ |
+| **Khách hàng** | Đăng ký qua popup **Đăng ký** trên trang chủ |
 
-## Chức năng
+## Chức năng chính
 
-### Khách hàng
-- Trang chủ, danh mục (lọc, tìm kiếm, phân trang)
-- **Chi tiết sản phẩm**: gallery ảnh, thông số, tab mô tả/đánh giá, gửi đánh giá
-- Giỏ hàng, thanh toán, mã giảm giá từ database
-- **Tồn kho**: trừ kho khi đặt hàng; hết kho → tự chuyển **Đặt trước** + cảnh báo admin
-- Đăng ký / đăng nhập, xem đơn hàng, hủy đơn khi còn chờ xử lý (tài khoản đã đăng nhập)
-- Blog tin tức
+### Khách hàng (storefront)
+
+- Trang chủ, danh mục sản phẩm (lọc, tìm kiếm, phân trang)
+- Chi tiết sản phẩm: gallery, thông số, tab mô tả / đánh giá, gửi đánh giá (chờ duyệt)
+- Giỏ hàng, thanh toán, mã giảm giá
+- Tồn kho: trừ kho khi đặt; hết kho → đặt trước + cảnh báo admin
+- Đăng ký / đăng nhập (popup), tài khoản, đơn hàng, hủy đơn khi còn chờ xử lý
+- **Blog**: danh sách tin, chi tiết bài, **bình luận** (gửi → chờ admin duyệt mới hiển thị)
+
+### Blog & bình luận
+
+| Thao tác | URL / vị trí |
+|----------|----------------|
+| Danh sách tin | `?view=blog` |
+| Chi tiết + form bình luận | `?view=post&slug=...` (mục **Bình luận** cuối bài) |
+| Soạn bài (admin) | `?view=blog-editor` |
+| Quản lý bài | `?view=admin-blog` |
+| Duyệt bình luận | `?view=admin-blog-comments` |
+
+Luồng bình luận: khách gửi → trạng thái `pending` → admin **Duyệt** / **Từ chối** / **Xóa** → chỉ bình luận `approved` hiện trên trang bài viết.
 
 ### Đăng nhập / đăng ký
-- Không có `login.php` riêng — dùng popup trên header (`data-open-auth`) hoặc tham số URL:
-  - `index.php?view=orders&auth=login` — mở form đăng nhập trên trang đơn hàng
-  - `index.php?view=account&auth=login` — trang tài khoản
-  - `index.php?view=order-detail&code=...&auth=login` — chi tiết đơn (sau khi đăng nhập)
-- Helper PHP: `auth_login_url($view, $params)`, `auth_register_url($view, $params)` trong `includes/helpers.php`
-- Toast khi đăng nhập thành công; SĐT, email hoặc tên · mật khẩu tối thiểu 6 ký tự
+
+Không có `login.php` riêng — dùng popup header (`data-open-auth`) hoặc tham số URL:
+
+- `index.php?view=orders&auth=login`
+- `index.php?view=account&auth=login`
+- `index.php?view=order-detail&code=...&auth=login`
+
+Helper: `auth_login_url()`, `auth_register_url()` trong `includes/helpers.php`.
 
 ### Quản trị (sau khi đăng nhập admin)
-- **Tổng quan** — `?view=admin-dashboard` (thống kê, đơn mới, liên kết nhanh)
-- **Đơn hàng** — `?view=admin-orders`
-- **Khách hàng** — `?view=admin-customers` (tìm kiếm, trạng thái, đơn hàng)
-- **Sản phẩm (CRUD)** — `?view=admin-products` (số lượng tồn, cảnh báo hết hàng)
-- **Đánh giá** — `?view=admin-reviews`
-- **Soạn blog** — `?view=blog-editor`
+
+| Trang | View |
+|-------|------|
+| Tổng quan | `admin-dashboard` |
+| Đơn hàng | `admin-orders` |
+| Khách hàng | `admin-customers` |
+| Sản phẩm (CRUD) | `admin-products` |
+| Đánh giá SP | `admin-reviews` |
+| Quản lý blog | `admin-blog` |
+| Bình luận blog | `admin-blog-comments` |
+| Soạn blog | `blog-editor` |
 
 ### Bảo mật
-- CSRF token, prepared statements, `password_hash`, khóa trang admin/blog-editor
 
-## URL trang
+- CSRF token trên form POST
+- Prepared statements, `password_hash`
+- Trang `admin-*` và `blog-editor` yêu cầu phiên admin
+
+## URL tham chiếu
 
 | View | Mô tả |
 |------|--------|
 | `home` | Trang chủ |
 | `catalog` | Sản phẩm |
 | `product&slug=...` | Chi tiết SP |
-| `cart` / `checkout` | Giỏ hàng / Thanh toán |
+| `cart` / `checkout` | Giỏ / Thanh toán |
 | `account` / `orders` | Tài khoản / Đơn hàng |
-| `blog` / `post` | Tin tức |
+| `blog` / `post` | Tin tức / Chi tiết + bình luận |
 | `admin-dashboard` | Bảng điều khiển |
-| `admin-orders` | Quản lý đơn (tất cả đơn) |
-| `admin-customers` | Quản lý khách hàng |
+| `admin-orders` | Quản lý đơn |
+| `admin-customers` | Khách hàng |
 | `admin-products` | CRUD sản phẩm |
-| `admin-reviews` | Duyệt đánh giá |
-| `blog-editor` | Soạn blog |
+| `admin-reviews` | Duyệt đánh giá SP |
+| `admin-blog` | Quản lý bài blog |
+| `admin-blog-comments` | Duyệt bình luận blog |
+| `blog-editor` | Soạn bài |
 
 ## Cấu trúc thư mục
 
 ```
-bootstrap/app.php       Khởi động: session, DB, xử lý POST, auth
-index.php               Front controller (layout + view)
-config/                 Cấu hình database
-database/schema/        Script SQL
+bootstrap/app.php          Session, DB, POST handlers, auth
+index.php                  Front controller
+config/                    Cấu hình database
+database/schema/           SQL theo module (01–14)
 includes/
-  routes.php            Whitelist view & assets
-  helpers.php           e(), redirect(), app_url()
-  flash.php             Thông báo PRG theo trang
-  *-post.php            Xử lý form trước khi in HTML
-  *-repository.php      Truy vấn MySQL
-  layout/               head.php, foot.php
-  errors/404.php
+  routes.php               Whitelist view & assets
+  helpers.php, flash.php, csrf.php
+  *-repository.php         Truy vấn MySQL (blog, comment, review, order…)
+  *-post.php               Xử lý form (storefront, admin)
+  layout/                  head.php, foot.php
 assets/css|js/
 ```
 
-**Luồng request:** `index.php` → `bootstrap/app.php` (POST handlers) → layout → `includes/{view}.php`
+**Luồng request:** `index.php` → `bootstrap/app.php` (POST trước HTML) → layout → `includes/{view}.php`
 
-### Ghi chú nghiệp vụ
+## Ghi chú nghiệp vụ
 
-- **Biến thể sản phẩm** (`product_variants`): có trong schema nhưng storefront hiện dùng một SKU/ giá mỗi sản phẩm.
-- **Doanh thu admin**: “Đã thu” = đơn không hủy/trả và `payment_status = paid`; “Giá trị đơn” = tổng đơn chưa hủy/trả (ước tính, kể cả COD chưa thu).
-- **Hủy/trả đơn**: hoàn tồn kho một lần (cờ `inventory_restocked`); khách hủy từ web khi đơn `pending`/`processing`.
+- **Biến thể SP** (`product_variants`): có trong schema; storefront hiện một SKU/giá mỗi sản phẩm.
+- **Doanh thu admin**: “Đã thu” = đơn không hủy/trả và `payment_status = paid`.
+- **Hủy/trả đơn**: hoàn tồn kho một lần (`inventory_restocked`).
 
-## Demo chi tiết sản phẩm
+## Thử nhanh
 
-Sau khi import DB, thử:
-- `index.php?view=product&slug=den-treo-tran-axis`
-- Gửi đánh giá → admin duyệt tại `?view=admin-reviews`
+```text
+index.php?view=product&slug=den-treo-tran-axis
+index.php?view=post&slug=<slug-bai-blog>
+index.php?view=admin-blog-comments&status=pending
+```
+
+Sau khi gửi bình luận trên bài viết, vào **Bình luận blog** trong menu admin để duyệt.

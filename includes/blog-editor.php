@@ -33,6 +33,7 @@ $isEditing = $editPostId > 0;
 
     <form method="post" action="<?php echo e(app_url('blog-editor', $isEditing ? ['edit' => $editPostId] : [])); ?>" class="blog-editor-form" id="blogEditorForm" enctype="multipart/form-data">
         <?php echo csrfField(); ?>
+        <input type="hidden" name="view" value="blog-editor">
         <input type="hidden" name="post_id" value="<?php echo $editPostId; ?>">
 
         <div class="blog-editor-layout">
@@ -104,7 +105,7 @@ $isEditing = $editPostId > 0;
 
                     <div class="blog-editor-field">
                         <label for="blogSlug">Slug (URL)</label>
-                        <input type="text" id="blogSlug" name="slug" required readonly value="<?php echo e($f['slug']); ?>" data-manual="<?php echo $isEditing ? '1' : '0'; ?>" placeholder="tu-dong-tu-tieu-de">
+                        <input type="text" id="blogSlug" name="slug" required<?php echo $isEditing ? ' readonly' : ''; ?> value="<?php echo e($f['slug']); ?>" data-manual="<?php echo $isEditing ? '1' : '0'; ?>" placeholder="tu-dong-tu-tieu-de">
                     </div>
 
                     <div class="blog-editor-field blog-cover-upload">
