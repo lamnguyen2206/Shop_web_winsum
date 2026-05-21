@@ -96,6 +96,84 @@ function blogGetCategoryOptions(mysqli $conn): array
     return $categories;
 }
 
+function blogEnsureCategories(mysqli $conn): void
+{
+    $defaults = ['Tin tức', 'Xu hướng', 'Hướng dẫn', 'Không gian sống'];
+    $stmt = $conn->prepare('SELECT id FROM blog_categories WHERE name = ? LIMIT 1');
+    $insert = $conn->prepare('INSERT INTO blog_categories (name, slug, is_active) VALUES (?, ?, 1)');
+    if (!$stmt || !$insert) {
+        return;
+    }
+
+    foreach ($defaults as $name) {
+        $stmt->bind_param('s', $name);
+        $stmt->execute();
+        if ($stmt->get_result()->fetch_assoc()) {
+            continue;
+        }
+        $slug = strtolower(trim(preg_replace('/[\s_]+/', '-', $name) ?? $name, '-'));
+        $insert->bind_param('ss', $name, $slug);
+        $insert->execute();
+    }
+
+    $stmt->close();
+    $insert->close();
+}
+
+function blogSeedIfEmpty(mysqli $conn): void
+{
+    $result = $conn->query('SELECT COUNT(*) AS c FROM blog_posts');
+    if (!$result) {
+        return;
+    }
+    $count = (int) ($result->fetch_assoc()['c'] ?? 0);
+    if ($count > 0) {
+        return;
+    }
+
+    $dataFile = __DIR__ . '/blog-data.php';
+    if (!is_file($dataFile)) {
+        return;
+    }
+
+    require $dataFile;
+    if (empty($blogPosts) || !is_array($blogPosts)) {
+        return;
+    }
+
+    $featuredSlugs = [
+        'den-treo-tran-axis-thong-minh',
+        've-dep-den-bauhaus',
+        'ph5-pendant-lamp-tuyet-tac-anh-sang',
+    ];
+
+    foreach ($blogPosts as $post) {
+        $contentHtml = '';
+        foreach ($post['content'] as $paragraph) {
+            $contentHtml .= '<p>' . htmlspecialchars((string) $paragraph, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+
+        blogCreatePost($conn, [
+            'slug' => (string) $post['slug'],
+            'title' => (string) $post['title'],
+            'excerpt' => (string) $post['excerpt'],
+            'content' => $contentHtml,
+            'category' => (string) $post['category'],
+            'image' => (string) $post['image'],
+            'read_time' => (string) $post['read_time'],
+            'published_at' => (string) $post['date'],
+            'is_featured' => in_array($post['slug'], $featuredSlugs, true),
+            'status' => 'published',
+        ]);
+    }
+}
+
+function blogEnsureDefaults(mysqli $conn): void
+{
+    blogEnsureCategories($conn);
+    blogSeedIfEmpty($conn);
+}
+
 function blogEstimateReadTime(string $html): string
 {
     $text = trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));

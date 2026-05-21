@@ -10,4 +10,5 @@ $adminView = isset($_GET['view']) ? (string) $_GET['view'] : '';
     <a class="<?php echo $adminView === 'admin-products' ? 'active' : ''; ?>" href="<?php echo e(app_url('admin-products')); ?>">Sản phẩm</a>
     <a class="<?php echo $adminView === 'admin-reviews' ? 'active' : ''; ?>" href="<?php echo e(app_url('admin-reviews')); ?>">Đánh giá</a>
     <a class="<?php echo $adminView === 'admin-blog' || $adminView === 'blog-editor' ? 'active' : ''; ?>" href="<?php echo e(app_url('admin-blog')); ?>">Quản lý blog</a>
+    <a class="<?php echo $adminView === 'admin-blog-comments' ? 'active' : ''; ?>" href="<?php echo e(app_url('admin-blog-comments')); ?>">Bình luận blog</a>
 </nav>

@@ -30,6 +30,7 @@ function appRoutes(): array
         'admin-products' => 'includes/admin-products.php',
         'admin-reviews' => 'includes/admin-reviews.php',
         'admin-blog' => 'includes/admin-blog.php',
+        'admin-blog-comments' => 'includes/admin-blog-comments.php',
     ];
 
     $titles = [
@@ -50,6 +51,7 @@ function appRoutes(): array
         'admin-products' => 'Quản trị sản phẩm | Winsum Home',
         'admin-reviews' => 'Quản trị đánh giá | Winsum Home',
         'admin-blog' => 'Quản lý blog | Winsum Home',
+        'admin-blog-comments' => 'Bình luận blog | Winsum Home',
     ];
 
     return [

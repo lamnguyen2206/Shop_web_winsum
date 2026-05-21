@@ -1,8 +1,14 @@
 <?php
-require __DIR__ . '/blog-repository.php';
+require_once __DIR__ . '/blog-repository.php';
+require_once __DIR__ . '/blog-comment-repository.php';
+require_once __DIR__ . '/customer-auth.php';
 
 $slug = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
 $currentPost = blogGetPostBySlug($conn, $slug);
+$postFlash = pageFlashConsume('post');
+$commentNotice = $postFlash['message'];
+$commentSuccess = $postFlash['success'];
+$currentCustomer = customerCurrent($conn);
 
 if ($currentPost === null) {
     http_response_code(404);
@@ -17,6 +23,7 @@ if ($currentPost === null) {
 }
 
 $relatedPosts = blogGetRelatedPosts($conn, $currentPost['category'], $currentPost['slug'], 3);
+$postComments = blogCommentGetApprovedByPost($conn, (int) $currentPost['id']);
 ?>
 
 <section class="container blog-detail">
@@ -44,6 +51,52 @@ $relatedPosts = blogGetRelatedPosts($conn, $currentPost['category'], $currentPos
             <?php endif; ?>
         </div>
     </article>
+
+    <section class="post-comments" id="post-comments">
+        <h2>Bình luận (<?php echo count($postComments); ?>)</h2>
+
+        <?php if ($commentNotice !== ''): ?>
+            <p class="post-comment-notice<?php echo $commentSuccess ? ' is-success' : ''; ?>"><?php echo htmlspecialchars($commentNotice); ?></p>
+        <?php endif; ?>
+
+        <?php if (empty($postComments)): ?>
+            <p class="post-comments-empty">Chưa có bình luận. Hãy là người đầu tiên chia sẻ ý kiến!</p>
+        <?php else: ?>
+            <ul class="post-comment-list">
+                <?php foreach ($postComments as $comment): ?>
+                    <li class="post-comment-item">
+                        <div class="post-comment-head">
+                            <strong><?php echo htmlspecialchars($comment['author_name']); ?></strong>
+                            <time datetime="<?php echo htmlspecialchars($comment['created_at']); ?>"><?php echo htmlspecialchars($comment['created_label']); ?></time>
+                        </div>
+                        <p><?php echo nl2br(htmlspecialchars($comment['content'])); ?></p>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+
+        <div class="post-comment-form-wrap">
+            <h3>Viết bình luận</h3>
+            <form method="post" action="<?php echo e(app_url('post', ['slug' => $currentPost['slug']])); ?>#post-comments" class="post-comment-form">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="submit_comment">
+                <input type="hidden" name="post_slug" value="<?php echo htmlspecialchars($currentPost['slug']); ?>">
+                <div class="post-comment-form-grid">
+                    <label>Họ tên
+                        <input type="text" name="author_name" required maxlength="120" value="<?php echo htmlspecialchars((string) ($currentCustomer['full_name'] ?? '')); ?>">
+                    </label>
+                    <label>Email (tuỳ chọn)
+                        <input type="email" name="author_email" maxlength="120" value="<?php echo htmlspecialchars((string) ($currentCustomer['email'] ?? '')); ?>">
+                    </label>
+                </div>
+                <label>Nội dung
+                    <textarea name="comment_content" rows="4" required maxlength="2000" placeholder="Chia sẻ suy nghĩ của bạn về bài viết..."></textarea>
+                </label>
+                <button type="submit">Gửi bình luận</button>
+                <p class="form-hint">Bình luận sẽ hiển thị sau khi quản trị viên duyệt.</p>
+            </form>
+        </div>
+    </section>
 
     <?php if (!empty($relatedPosts)): ?>
         <section class="related-posts">

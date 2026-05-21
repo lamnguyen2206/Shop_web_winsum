@@ -23,6 +23,10 @@ customerBootstrapAdminAccount($conn);
 inventoryEnsureAlertsTable($conn);
 require_once __DIR__ . '/../includes/order-repository.php';
 orderEnsureSchema($conn);
+require_once __DIR__ . '/../includes/blog-comment-repository.php';
+require_once __DIR__ . '/../includes/blog-repository.php';
+blogCommentEnsureTable($conn);
+blogEnsureDefaults($conn);
 
 $requestedView = isset($_GET['view'])
     ? (string) $_GET['view']
